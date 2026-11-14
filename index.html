@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Twenty-minute AMRAP for returning runners</title>
+<meta name="description" content="A new 20-minute as-many-reps-as-possible workout every day, with single-leg work and core, built for runners getting back into it.">
+<meta name="theme-color" content="#ffd400">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eceff3;
+    --card: #ffffff;
+    --ink: #0c1a2b;
+    --muted: #55637a;
+    --line: #c9d1dc;
+    --hivis: #ffd400;
+    --hivis-ink: #0c1a2b;
+    --lane: #2559c7;
+    --lane-soft: #dfe8fb;
+    --good: #1f7a4d;
+    --display: "Big Shoulders Display", "Oswald", "Arial Narrow", Impact, sans-serif;
+    --body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #08121f;
+      --card: #101e31;
+      --ink: #eaf0f8;
+      --muted: #9aa9bf;
+      --line: #263a54;
+      --hivis: #ffd400;
+      --hivis-ink: #0c1a2b;
+      --lane: #7ea3ff;
+      --lane-soft: #1a2b4a;
+      --good: #67d39b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.5 var(--body);
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--lane); outline-offset: 2px; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 150px; }
+
+  /* ---------- header */
+  .lede { margin: 0 0 4px; color: var(--muted); font-size: 15px; }
+  h1 {
+    margin: 0;
+    font: 900 clamp(52px, 14vw, 92px)/0.9 var(--display);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 14px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 15px; }
+  .badge { display: inline-block; padding: 1px 10px; border-radius: 99px; font-weight: 600; font-size: 14px; background: var(--hivis); color: var(--hivis-ink); }
+  .badge.local { background: var(--lane-soft); color: var(--lane); }
+  .summary { margin: 18px 0 0; font-size: 18px; max-width: 52ch; }
+  .summary strong { font-weight: 700; }
+
+  /* ---------- filters */
+  .panel { margin-top: 26px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+  .panel > summary { list-style: none; cursor: pointer; padding: 14px 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .panel > summary::-webkit-details-marker { display: none; }
+  .panel > summary::after { content: "+"; font: 700 24px/1 var(--display); color: var(--muted); }
+  .panel[open] > summary::after { content: "\2212"; }
+  .panel-body { padding: 4px 16px 18px; display: grid; gap: 18px; }
+  .group-label { font-weight: 600; margin: 0 0 8px; }
+  .hint { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  .seg, .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1.5px solid var(--line); background: transparent; border-radius: 99px;
+    padding: 7px 14px; font-weight: 500; min-height: 40px;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .chip[disabled] { opacity: .45; cursor: not-allowed; }
+  .chip.fixed { border-style: dashed; color: var(--muted); }
+  .row-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn {
+    border: 2px solid var(--ink); background: transparent; border-radius: 8px;
+    padding: 9px 16px; font-weight: 600; min-height: 44px;
+  }
+  .btn.primary { background: var(--hivis); color: var(--hivis-ink); border-color: var(--ink); }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .locked-note { color: var(--muted); font-size: 14px; margin: 0; }
+
+  /* ---------- timer */
+  .clock-card { margin-top: 26px; border: 2px solid var(--ink); border-radius: 10px; background: var(--card); overflow: hidden; }
+  .clock-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 14px 16px 6px; flex-wrap: wrap; }
+  .clock { font: 900 clamp(64px, 20vw, 112px)/0.85 var(--display); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+  .score { text-align: right; font-size: 15px; color: var(--muted); }
+  .score b { display: block; color: var(--ink); font: 800 34px/1 var(--display); }
+  .bar { height: 8px; background: var(--line); }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--hivis); border-right: 2px solid var(--ink); transition: width .25s linear; }
+  .clock-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; font-size: 14px; color: var(--muted); }
+  .link { background: none; border: 0; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; color: var(--muted); min-height: 32px; }
+
+  /* ---------- movement list */
+  .moves { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 12px; }
+  .move {
+    display: grid; grid-template-columns: 104px 1fr auto; gap: 14px; align-items: center;
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 10px; padding: 12px 12px 12px 12px;
+  }
+  .move.now { border-color: var(--ink); box-shadow: 4px 4px 0 var(--hivis); }
+  .move.past { opacity: .55; }
+  .bib {
+    position: relative; text-align: center; padding: 14px 4px 8px;
+    border: 2px solid var(--ink); border-radius: 4px; background: #fff; color: #0c1a2b;
+  }
+  .bib::before, .bib::after {
+    content: ""; position: absolute; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: #0c1a2b; opacity: .75;
+  }
+  .bib::before { left: 6px; } .bib::after { right: 6px; }
+  .move.now .bib { background: var(--hivis); }
+  .bib .n { display: block; font: 900 54px/0.85 var(--display); font-variant-numeric: tabular-nums; }
+  .bib .u { display: block; margin-top: 4px; font-size: 13px; font-weight: 600; line-height: 1.15; }
+  .info h3 { margin: 0; font: 800 28px/1 var(--display); letter-spacing: .005em; }
+  .info p { margin: 4px 0 8px; color: var(--muted); font-size: 15px; max-width: 46ch; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 13px; font-weight: 600; padding: 1px 9px; border-radius: 99px; border: 1.5px solid var(--line); color: var(--muted); }
+  .tag.single { background: var(--lane); border-color: var(--lane); color: #fff; }
+  @media (prefers-color-scheme: dark) { .tag.single { color: #08121f; } }
+  .tag.core { border-color: var(--lane); color: var(--lane); }
+  .swap {
+    width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--line); background: transparent; font-size: 20px; line-height: 1;
+  }
+  .swap:hover { border-color: var(--ink); }
+
+  /* ---------- sticky action bar */
+  .dock {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--card); border-top: 2px solid var(--ink);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .dock-inner { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; }
+  .dock .btn { min-height: 56px; }
+  .dock .main { background: var(--hivis); color: var(--hivis-ink); font-size: 18px; border-radius: 10px; }
+  .dock .main small { display: block; font-weight: 500; font-size: 13px; }
+
+  /* ---------- results + extras */
+  .finish { margin-top: 22px; border: 2px solid var(--ink); border-radius: 10px; padding: 16px; background: var(--hivis); color: var(--hivis-ink); }
+  .finish h2 { margin: 0 0 4px; font: 900 40px/1 var(--display); }
+  .finish p { margin: 0 0 12px; }
+  .finish .btn { background: #fff; color: #0c1a2b; border-color: #0c1a2b; }
+  .section { margin-top: 34px; }
+  .section h2 { margin: 0 0 10px; font: 800 30px/1 var(--display); }
+  .section p, .section li { max-width: 60ch; }
+  .log { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .log li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .log span:last-child { font-weight: 600; text-align: right; }
+  .lib-search { width: 100%; min-height: 44px; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--card); margin-bottom: 10px; }
+  .lib-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 0; }
+  .lib-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .lib-list .q { color: var(--muted); white-space: nowrap; }
+  .small { color: var(--muted); font-size: 14px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--ink); color: var(--paper);
+    padding: 8px 16px; border-radius: 99px; font-size: 14px; font-weight: 600; z-index: 6;
+  }
+  @media (max-width: 480px) {
+    .move { grid-template-columns: 84px 1fr auto; gap: 10px; }
+    .bib .n { font-size: 44px; }
+    .info h3 { font-size: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script src="lib/exercises.js"></script>
+<script src="lib/generator.js"></script>
+<script src="data/today.js"></script>
+<script>
+(function () {
+  'use strict';
+  var GEN = window.AmrapGen, LIB = window.AMRAP_EXERCISES, TODAY = window.AMRAP_TODAY || null;
+  var DURATION = GEN.MINUTES * 60 * 1000;
+
+  var PHASE_INFO = {
+    easing:   { label: 'Easing back', hint: 'Run-walk stage. No impact, nothing heavy. Effort 5 or 6 out of 10: you can still talk.' },
+    building: { label: 'Building',    hint: 'Light impact allowed, a little more load. Effort 6 or 7 out of 10.' },
+    ready:    { label: 'Ready',       hint: 'Jumps and hops come in. Effort 7 or 8 out of 10. Skip it the day before a hard run.' }
+  };
+  var EQ_LABEL = { dumbbell: 'Dumbbell', kettlebell: 'Kettlebell', band: 'Resistance band', step: 'Step or bench' };
+  var SLOT_FILTERS = [
+    { id: 'all', label: 'All' }, { id: 'single', label: 'Single-leg' }, { id: 'core', label: 'Core' },
+    { id: 'lower', label: 'Both legs' }, { id: 'upper', label: 'Upper body' }, { id: 'cond', label: 'Conditioning' }
+  ];
+
+  // ------------------------------------------------------------ state
+  var fallbackCfg = GEN.normalizeConfig({ phase: 'easing', equipment: [], movements: 5 });
+  var S = {
+    cfg: TODAY ? GEN.normalizeConfig(TODAY.config) : fallbackCfg,
+    recent: TODAY ? TODAY.recent || {} : {},
+    workout: null, source: 'published', swaps: 0,
+    n: 0, status: 'idle', remain: DURATION, endAt: 0,
+    muted: false, saved: false, toast: '',
+    libSlot: 'all', libQuery: ''
+  };
+  var publishedKey = TODAY ? TODAY.cfgKey : GEN.cfgKey(fallbackCfg);
+  var publishedWorkout = TODAY ? TODAY.workout : null;
+  var publishedDate = TODAY ? TODAY.date : localDate();
+  if (!publishedWorkout) {
+    publishedWorkout = GEN.generate({ exercises: LIB, cfg: S.cfg, recent: {} }, publishedDate + '|local|' + publishedKey);
+    S.source = 'local-today';
+  }
+  S.workout = publishedWorkout;
+
+  var timerId = 0, audio = null, lastWhole = -1;
+
+  // ------------------------------------------------------------ helpers
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function localDate() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function mmss(sec) { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+  function prettyDate(iso) {
+    var p = iso.split('-').map(Number);
+    return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+  function locked() { return S.status !== 'idle'; }
+  function ctx() { return { exercises: LIB, cfg: S.cfg, recent: S.recent }; }
+
+  function score() {
+    var w = S.workout, len = w.moves.length;
+    var rounds = Math.floor(S.n / len), extra = S.n % len;
+    var reps = rounds * w.repsPerRound;
+    for (var i = 0; i < extra; i++) reps += w.moves[i].reps;
+    return { rounds: rounds, extra: extra, reps: reps, len: len };
+  }
+  function scoreText(sc) {
+    var r = sc.rounds + (sc.rounds === 1 ? ' round' : ' rounds');
+    if (sc.extra) r += ' and ' + sc.extra + ' of ' + sc.len + ' movements';
+    return r + ', ' + sc.reps + ' reps';
+  }
+  function qtyParts(m) {
+    var unit = m.unit === 'sec' ? 'seconds' : m.unit === 'steps' ? 'steps' : 'reps';
+    return { n: m.qty, u: m.side ? unit + ' each side' : unit };
+  }
+
+  function readLog() { try { return JSON.parse(localStorage.getItem('amrap-log-v1') || '[]'); } catch (e) { return []; } }
+  function writeLog(list) { try { localStorage.setItem('amrap-log-v1', JSON.stringify(list.slice(0, 40))); } catch (e) { /* storage unavailable */ } }
+
+  // ------------------------------------------------------------ config changes
+  function applyConfig(next) {
+    if (locked()) return;
+    S.cfg = GEN.normalizeConfig(next);
+    S.n = 0; S.saved = false; S.remain = DURATION;
+    if (GEN.cfgKey(S.cfg) === publishedKey) {
+      S.workout = publishedWorkout; S.source = TODAY ? 'published' : 'local-today';
+    } else {
+      shuffle(true);
+      return;
+    }
+    S.swaps = 0;
+    render();
+  }
+  function shuffle(silent) {
+    if (locked()) return;
+    var seed = 'shuffle|' + Math.random().toString(36).slice(2);
+    S.workout = GEN.generate(ctx(), seed);
+    S.source = 'shuffled'; S.swaps = 0; S.n = 0; S.saved = false; S.remain = DURATION;
+    if (!silent) flash('New workout');
+    render();
+  }
+  function backToPublished() {
+    if (locked()) return;
+    S.cfg = TODAY ? GEN.normalizeConfig(TODAY.config) : fallbackCfg;
+    S.workout = publishedWorkout; S.source = TODAY ? 'published' : 'local-today';
+    S.swaps = 0; S.n = 0; S.saved = false; S.remain = DURATION;
+    render();
+  }
+
+  // ------------------------------------------------------------ timer
+  function beep(freq, ms) {
+    if (S.muted || !audio) return;
+    try {
+      var o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = freq; o.type = 'square'; g.gain.value = 0.08;
+      o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + ms / 1000);
+    } catch (e) { /* audio unavailable */ }
+  }
+  var wake = null;
+  function keepAwake(on) {
+    try {
+      if (on && navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { wake = l; }).catch(function () {});
+      else if (!on && wake) { wake.release(); wake = null; }
+    } catch (e) { /* not supported */ }
+  }
+  function start() {
+    try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (e) { audio = null; }
+    S.status = 'running'; S.endAt = Date.now() + S.remain; lastWhole = -1;
+    clearInterval(timerId); timerId = setInterval(tick, 200);
+    keepAwake(true); render();
+  }
+  function pause() {
+    S.remain = Math.max(0, S.endAt - Date.now()); S.status = 'paused';
+    clearInterval(timerId); keepAwake(false); render();
+  }
+  function tick() {
+    var left = Math.max(0, S.endAt - Date.now());
+    S.remain = left;
+    var whole = Math.ceil(left / 1000);
+    if (whole !== lastWhole) {
+      lastWhole = whole;
+      if (whole > 0 && whole <= 3) beep(660, 120);
+      if (whole === 0) { beep(990, 700); try { navigator.vibrate && navigator.vibrate([300, 100, 300]); } catch (e) {} }
+    }
+    if (left <= 0) { clearInterval(timerId); S.status = 'done'; keepAwake(false); render(); return; }
+    paintClock();
+  }
+  function paintClock() {
+    var c = document.getElementById('clock'), b = document.getElementById('barfill');
+    if (c) c.textContent = mmss(Math.ceil(S.remain / 1000));
+    if (b) b.style.width = (100 - (S.remain / DURATION) * 100) + '%';
+  }
+  function reset() {
+    clearInterval(timerId); keepAwake(false);
+    S.status = 'idle'; S.remain = DURATION; S.n = 0; S.saved = false; render();
+  }
+  function done() { if (S.status === 'running') { S.n++; render(); } }
+  function undo() { if (S.n > 0 && S.status !== 'idle') { S.n--; S.saved = false; render(); } }
+
+  function saveScore() {
+    var sc = score(), log = readLog();
+    log.unshift({ date: localDate(), title: S.workout.title, phase: S.cfg.phase, rounds: sc.rounds, extra: sc.extra, len: sc.len, reps: sc.reps });
+    writeLog(log); S.saved = true; flash('Score saved'); render();
+  }
+
+  // ------------------------------------------------------------ copy
+  function workoutText() {
+    var w = S.workout, lines = [w.title + ' (AMRAP ' + w.minutes + ', ' + PHASE_INFO[w.phase].label + ')'];
+    w.moves.forEach(function (m, i) {
+      lines.push((i + 1) + '. ' + GEN.qtyLabel(m) + ' ' + m.name + (m.uses ? ' (' + m.uses + ')' : ''));
+    });
+    lines.push('About ' + mmss(w.roundSeconds) + ' per round, aim for ' + w.targetRounds + ' rounds.');
+    return lines.join('\n');
+  }
+  function copy() {
+    var text = workoutText();
+    function ok() { flash('Copied'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, function () { flash('Copy failed'); });
+    else {
+      var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); ok(); } catch (e) { flash('Copy failed'); }
+      document.body.removeChild(t);
+    }
+  }
+  var toastTimer = 0;
+  function flash(msg) {
+    S.toast = msg; clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { S.toast = ''; var t = document.getElementById('toast'); if (t) t.remove(); }, 1800);
+    var old = document.getElementById('toast'); if (old) old.remove();
+    var el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'status'); el.textContent = msg;
+    document.body.appendChild(el);
+  }
+
+  // ------------------------------------------------------------ render
+  function renderControls() {
+    var lock = locked(), dis = lock ? ' disabled' : '';
+    var phases = GEN.PHASES.map(function (p) {
+      return '<button class="chip" data-act="phase" data-v="' + p + '" aria-pressed="' + (S.cfg.phase === p) + '"' + dis + '>' + PHASE_INFO[p].label + '</button>';
+    }).join('');
+    var eq = GEN.EQUIPMENT.map(function (e) {
+      return '<button class="chip" data-act="eq" data-v="' + e + '" aria-pressed="' + (S.cfg.equipment.indexOf(e) >= 0) + '"' + dis + '>' + EQ_LABEL[e] + '</button>';
+    }).join('');
+    var counts = [4, 5].map(function (n) {
+      return '<button class="chip" data-act="count" data-v="' + n + '" aria-pressed="' + (S.cfg.movements === n) + '"' + dis + '>' + n + ' movements</button>';
+    }).join('');
+    var focus = '<button class="chip" data-act="tog" data-v="doubleSingle" aria-pressed="' + S.cfg.doubleSingle + '"' + dis + '>Two single-leg movements</button>' +
+                '<button class="chip" data-act="tog" data-v="doubleCore" aria-pressed="' + S.cfg.doubleCore + '"' + dis + '>Two core movements</button>';
+    var differs = GEN.cfgKey(S.cfg) !== publishedKey || S.source === 'shuffled';
+    return '<details class="panel" id="filters"' + (S.filtersOpen === false ? '' : ' open') + '>' +
+      '<summary>Adjust this workout</summary><div class="panel-body">' +
+      (lock ? '<p class="locked-note">Filters are locked while the clock is going. Reset to change them.</p>' : '') +
+      '<div><p class="group-label">Where you are</p><div class="seg">' + phases + '</div><p class="hint">' + PHASE_INFO[S.cfg.phase].hint + '</p></div>' +
+      '<div><p class="group-label">What you have</p><div class="chips"><span class="chip fixed">Bodyweight</span>' + eq + '</div></div>' +
+      '<div><p class="group-label">How much</p><div class="seg">' + counts + '</div></div>' +
+      '<div><p class="group-label">Emphasis</p><div class="chips">' + focus + '</div><p class="hint">Every workout already has at least one single-leg movement and one core movement.</p></div>' +
+      '<div class="row-actions"><button class="btn primary" data-act="shuffle"' + dis + '>Shuffle</button>' +
+      (differs ? '<button class="btn" data-act="today"' + dis + '>Back to the published pick</button>' : '') +
+      '<button class="btn" data-act="copy">Copy workout</button></div>' +
+      '</div></details>';
+  }
+
+  function renderMoves() {
+    var w = S.workout, len = w.moves.length, cur = S.status === 'idle' ? -1 : S.n % len;
+    return '<ol class="moves">' + w.moves.map(function (m, i) {
+      var q = qtyParts(m);
+      var cls = 'move' + (i === cur ? ' now' : '');
+      var tags = '';
+      if (m.slot === 'single') tags += '<span class="tag single">Single-leg</span>';
+      if (m.slot === 'core') tags += '<span class="tag core">Core</span>';
+      if (m.uses) tags += '<span class="tag">' + esc(EQ_LABEL[m.uses] || m.uses) + '</span>';
+      return '<li class="' + cls + '"' + (i === cur ? ' aria-current="step"' : '') + '>' +
+        '<div class="bib"><span class="n">' + q.n + '</span><span class="u">' + q.u + '</span></div>' +
+        '<div class="info"><h3>' + esc(m.name) + '</h3><p>' + esc(m.cue) + '</p><div class="tags">' + tags + '</div></div>' +
+        (locked() ? '<span></span>' : '<button class="swap" data-act="swap" data-v="' + i + '" aria-label="Swap ' + esc(m.name) + ' for another ' + (m.slot === 'single' ? 'single-leg' : m.slot === 'core' ? 'core' : '') + ' movement" title="Swap this movement">&#8635;</button>') +
+        '</li>';
+    }).join('') + '</ol>';
+  }
+
+  function renderClock() {
+    var sc = score(), w = S.workout;
+    var status = S.status === 'idle' ? 'Ready when you are' : S.status === 'paused' ? 'Paused' : S.status === 'done' ? 'Time' : 'Round ' + (sc.rounds + 1) + ', movement ' + (sc.extra + 1) + ' of ' + sc.len;
+    return '<section class="clock-card" aria-label="Timer">' +
+      '<div class="clock-top"><div class="clock" id="clock" role="timer">' + mmss(Math.ceil(S.remain / 1000)) + '</div>' +
+      '<div class="score" aria-live="polite"><b>' + sc.reps + ' reps</b>' + sc.rounds + (sc.rounds === 1 ? ' round' : ' rounds') + (sc.extra ? ' + ' + sc.extra + ' of ' + sc.len : '') + '</div></div>' +
+      '<div class="bar"><i id="barfill" style="width:' + (100 - (S.remain / DURATION) * 100) + '%"></i></div>' +
+      '<div class="clock-foot"><span>' + status + '</span><span>' +
+      '<button class="link" data-act="mute">' + (S.muted ? 'Sound off' : 'Sound on') + '</button>' +
+      (S.status !== 'idle' ? ' &nbsp; <button class="link" data-act="reset">Reset</button>' : '') + '</span></div></section>';
+  }
+
+  function renderDock() {
+    var w = S.workout, cur = w.moves[S.n % w.moves.length];
+    var main, undoDis = (S.n === 0 || S.status === 'idle') ? ' disabled' : '';
+    if (S.status === 'idle') main = '<button class="btn main" data-act="start">Start ' + GEN.MINUTES + ':00</button>';
+    else if (S.status === 'running') main = '<button class="btn main" data-act="done"><small>Tap when finished</small>' + esc(cur.name) + ' done</button>';
+    else if (S.status === 'paused') main = '<button class="btn main" data-act="start">Resume</button>';
+    else main = '<button class="btn main" data-act="save"' + (S.saved ? ' disabled' : '') + '>' + (S.saved ? 'Score saved' : 'Save score') + '</button>';
+    var side = S.status === 'running' ? '<button class="btn" data-act="pause">Pause</button>' : '<span></span>';
+    return '<div class="dock"><div class="dock-inner"><button class="btn" data-act="undo"' + undoDis + '>Undo</button>' + main + side + '</div></div>';
+  }
+
+  function renderFinish() {
+    if (S.status !== 'done') return '';
+    var sc = score();
+    return '<section class="finish" aria-live="polite"><h2>Time</h2><p>' + esc(scoreText(sc)) + '. Count the last movement you finished, then save it.</p>' +
+      '<button class="btn" data-act="reset">Start over</button></section>';
+  }
+
+  function renderLog() {
+    var log = readLog();
+    var items = log.slice(0, 6).map(function (e) {
+      var r = e.rounds + (e.rounds === 1 ? ' round' : ' rounds') + (e.extra ? ' + ' + e.extra + '/' + e.len : '');
+      return '<li><span>' + esc(e.date) + ', ' + esc(e.title) + '</span><span>' + r + ', ' + e.reps + ' reps</span></li>';
+    }).join('');
+    return '<section class="section"><h2>Your scores</h2>' +
+      (items ? '<ul class="log">' + items + '</ul><p class="small">Saved on this device only.</p>'
+             : '<p class="small">Finish a workout and tap Save score. Scores stay on this device.</p>') + '</section>';
+  }
+
+  function renderLibrary() {
+    var idx = GEN.PHASES.indexOf(S.cfg.phase);
+    var q = S.libQuery.trim().toLowerCase();
+    var all = LIB.filter(function (e) { return GEN.eligible(e, S.cfg); });
+    var list = all.filter(function (e) {
+      var slot = e.slot === 'push' || e.slot === 'pull' ? 'upper' : e.slot;
+      return (S.libSlot === 'all' || S.libSlot === slot) && (!q || e.name.toLowerCase().indexOf(q) >= 0);
+    });
+    var chips = SLOT_FILTERS.map(function (f) {
+      return '<button class="chip" data-act="libslot" data-v="' + f.id + '" aria-pressed="' + (S.libSlot === f.id) + '">' + f.label + '</button>';
+    }).join('');
+    var rows = list.map(function (e) {
+      return '<li><span>' + esc(e.name) + '</span><span class="q">' + esc(GEN.qtyLabel({ qty: e.r[idx], unit: e.u, side: e.side })) + '</span></li>';
+    }).join('');
+    return '<section class="section"><details class="panel"><summary>Movement library, ' + all.length + ' available for you</summary><div class="panel-body">' +
+      '<div><input class="lib-search" id="libq" type="search" placeholder="Search movements" value="' + esc(S.libQuery) + '" aria-label="Search movements"><div class="chips">' + chips + '</div></div>' +
+      (rows ? '<ul class="lib-list">' + rows + '</ul>' : '<p class="small">Nothing matches. Try another filter.</p>') +
+      '</div></details></section>';
+  }
+
+  function render() {
+    var active = document.activeElement && document.activeElement.id;
+    var w = S.workout;
+    var badge = S.source === 'published' ? '<span class="badge">Published pick</span>'
+      : S.source === 'shuffled' ? '<span class="badge local">Shuffled on this device</span>'
+      : '<span class="badge local">Made in your browser</span>';
+    var stale = (TODAY && S.source === 'published' && TODAY.date !== localDate()) ? '<li>Published for ' + esc(prettyDate(TODAY.date)) + '. Today\'s should land soon.</li>' : '';
+    var html =
+      '<header><p class="lede">Return-to-run strength</p><h1>' + esc(w.title) + '</h1>' +
+      '<ul class="facts"><li>' + esc(prettyDate(S.source === 'published' ? publishedDate : localDate())) + '</li><li>' + GEN.MINUTES + ' minute AMRAP</li><li>' + PHASE_INFO[S.cfg.phase].label + '</li><li>' + badge + '</li>' + stale + '</ul>' +
+      '<p class="summary">Do the movements in order, then go again. Rest only when you need to. One round takes about <strong>' + mmss(w.roundSeconds) + '</strong>, so aim for <strong>' + w.targetRounds + ' rounds</strong>, ' + w.repsPerRound + ' reps each.</p></header>' +
+      renderClock() + renderMoves() + renderFinish() + renderControls() +
+      '<section class="section"><h2>Before you start</h2><p>Three minutes: march in place for one minute, ten leg swings each side, ten air squats, then five slow reverse lunges each side. Pick loads that leave two reps in reserve every round.</p>' +
+      '<p class="small">This is general exercise guidance, not medical advice. If anything pinches (Achilles, shin, knee, hip), swap it with the arrow button and mention it to your physio.</p></section>' +
+      renderLog() + renderLibrary() +
+      '<section class="section"><h2>How the daily pick works</h2><p class="small">A GitHub Action publishes a new workout each morning. If you don\'t like it, Shuffle gives you a one-off here. To replace the published pick, run the Action by hand from the repository\'s Actions tab.</p></section>' +
+      renderDock();
+    var app = document.getElementById('app');
+    var keepScroll = window.scrollY, openF = document.getElementById('filters'), fo = openF ? openF.open : true;
+    app.innerHTML = html;
+    var f = document.getElementById('filters'); if (f) { f.open = fo; S.filtersOpen = fo; }
+    window.scrollTo(0, keepScroll);
+    if (active === 'libq') { var el = document.getElementById('libq'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+    if (S.toast) flash(S.toast);
+  }
+
+  // ------------------------------------------------------------ events
+  document.addEventListener('click', function (ev) {
+    var t = ev.target.closest('[data-act]'); if (!t || t.disabled) return;
+    var act = t.getAttribute('data-act'), v = t.getAttribute('data-v');
+    var c = JSON.parse(JSON.stringify(S.cfg));
+    if (act === 'phase') { c.phase = v; applyConfig(c); }
+    else if (act === 'eq') { var i = c.equipment.indexOf(v); if (i >= 0) c.equipment.splice(i, 1); else c.equipment.push(v); applyConfig(c); }
+    else if (act === 'count') { c.movements = Number(v); applyConfig(c); }
+    else if (act === 'tog') { c[v] = !c[v]; applyConfig(c); }
+    else if (act === 'shuffle') shuffle();
+    else if (act === 'today') backToPublished();
+    else if (act === 'copy') copy();
+    else if (act === 'swap') { S.swaps++; S.workout = GEN.swap(S.workout, Number(v), ctx(), S.swaps); S.source = S.source === 'published' || S.source === 'local-today' ? 'shuffled' : S.source; render(); }
+    else if (act === 'start') start();
+    else if (act === 'pause') pause();
+    else if (act === 'done') done();
+    else if (act === 'undo') undo();
+    else if (act === 'reset') reset();
+    else if (act === 'save') saveScore();
+    else if (act === 'mute') { S.muted = !S.muted; render(); }
+    else if (act === 'libslot') { S.libSlot = v; render(); }
+  });
+  document.addEventListener('input', function (ev) {
+    if (ev.target.id === 'libq') { S.libQuery = ev.target.value; render(); }
+  });
+  document.addEventListener('toggle', function (ev) { if (ev.target.id === 'filters') S.filtersOpen = ev.target.open; }, true);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && S.status === 'running') { tick(); keepAwake(true); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

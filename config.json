@@ -1,0 +1,8 @@
+{
+  "timezone": "America/Toronto",
+  "phase": "easing",
+  "equipment": [],
+  "movements": 5,
+  "doubleSingle": false,
+  "doubleCore": false
+}

@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-13",
+  "timezone": "America/Toronto",
+  "generatedAt": "2026-11-13T21:39:50.784Z",
+  "trigger": "local",
+  "salt": "mwfi2kox",
+  "config": {
+    "phase": "easing",
+    "equipment": [],
+    "movements": 5,
+    "doubleSingle": false,
+    "doubleCore": false
+  },
+  "cfgKey": "easing|bodyweight|5|0|0",
+  "recent": {},
+  "workout": {
+    "seed": "2026-11-13|mwfi2kox|easing|bodyweight|5|0|0",
+    "title": "Strong Pace",
+    "format": "AMRAP",
+    "minutes": 20,
+    "phase": "easing",
+    "moves": [
+      {
+        "id": "single-leg-calf-raise",
+        "name": "Single-leg calf raise",
+        "slot": "single",
+        "pat": "calf",
+        "qty": 10,
+        "unit": "reps",
+        "side": true,
+        "uses": null,
+        "cue": "Full range, pause at the top, lower for two counts. Hold a wall for balance.",
+        "sec": 60,
+        "reps": 20
+      },
+      {
+        "id": "push-up",
+        "name": "Push-up",
+        "slot": "push",
+        "pat": "push",
+        "qty": 6,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Body in one line. Drop to the knees if form slips.",
+        "sec": 21,
+        "reps": 6
+      },
+      {
+        "id": "side-plank",
+        "name": "Side plank",
+        "slot": "core",
+        "pat": "lateral",
+        "qty": 15,
+        "unit": "sec",
+        "side": true,
+        "uses": null,
+        "cue": "Stack the hips, lift them high, keep the neck long.",
+        "sec": 40,
+        "reps": 0
+      },
+      {
+        "id": "glute-bridge",
+        "name": "Glute bridge",
+        "slot": "lower",
+        "pat": "bridge",
+        "qty": 12,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Feet flat, push through the heels, squeeze at the top.",
+        "sec": 36,
+        "reps": 12
+      },
+      {
+        "id": "high-knee-march",
+        "name": "High-knee march",
+        "slot": "cond",
+        "pat": "cardio",
+        "qty": 30,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Total steps. Drive the knee up, swing the opposite arm.",
+        "sec": 30,
+        "reps": 30
+      }
+    ],
+    "roundSeconds": 187,
+    "repsPerRound": 68,
+    "targetRounds": 6
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "amrap-return-to-run",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daily 20-minute AMRAP workouts for a runner returning to running.",
+  "scripts": {
+    "generate": "node scripts/generate.js",
+    "reroll": "node scripts/generate.js --reroll",
+    "test": "node scripts/test.js"
+  },
+  "engines": { "node": ">=18" }
+}
