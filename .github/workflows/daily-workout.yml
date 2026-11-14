@@ -1,0 +1,115 @@
+name: Daily workout
+
+on:
+  # Every day at 10:30 UTC (5:30 am EST / 6:30 am EDT in Toronto).
+  schedule:
+    - cron: "30 10 * * *"
+
+  # Run it by hand: Actions tab > Daily workout > Run workflow.
+  # Leave "reroll" on to replace today's published workout with a new one.
+  workflow_dispatch:
+    inputs:
+      reroll:
+        description: "Replace today's workout with a new one"
+        type: boolean
+        default: true
+      phase:
+        description: "Phase (leave as config.json default to keep it)"
+        type: choice
+        default: ""
+        options: ["", easing, building, ready]
+      equipment:
+        description: "Equipment, comma separated: dumbbell,kettlebell,band,step (blank keeps config.json)"
+        type: string
+        default: ""
+      movements:
+        description: "Movements per round"
+        type: choice
+        default: ""
+        options: ["", "4", "5"]
+      double_single:
+        description: "Two single-leg movements"
+        type: choice
+        default: ""
+        options: ["", "true", "false"]
+      double_core:
+        description: "Two core movements"
+        type: choice
+        default: ""
+        options: ["", "true", "false"]
+
+  # Redeploy when the site, library or defaults change.
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - lib/**
+      - config.json
+      - scripts/**
+      - .github/workflows/daily-workout.yml
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: daily-workout
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run tests
+        run: node scripts/test.js
+
+      - name: Generate today's workout
+        env:
+          REROLL: ${{ github.event_name == 'workflow_dispatch' && inputs.reroll || 'false' }}
+          PHASE: ${{ inputs.phase }}
+          EQUIPMENT: ${{ inputs.equipment }}
+          MOVEMENTS: ${{ inputs.movements }}
+          DOUBLE_SINGLE: ${{ inputs.double_single }}
+          DOUBLE_CORE: ${{ inputs.double_core }}
+        run: node scripts/generate.js
+
+      - name: Commit the new workout
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data TODAY.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Workout for $(date -u +%F)"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          cp index.html _site/
+          cp -r lib _site/lib
+          mkdir _site/data
+          cp data/today.js _site/data/today.js
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
