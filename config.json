@@ -1,5 +1,6 @@
 {
   "timezone": "America/Toronto",
+  "format": "mix",
   "phase": "easing",
   "equipment": [],
   "movements": 5,

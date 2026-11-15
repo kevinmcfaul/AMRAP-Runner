@@ -89,6 +89,7 @@
   }
   .btn.primary { background: var(--hivis); color: var(--hivis-ink); border-color: var(--ink); }
   .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
   .locked-note { color: var(--muted); font-size: 14px; margin: 0; }
 
   /* ---------- timer */
@@ -189,10 +190,17 @@
     building: { label: 'Building',    hint: 'Light impact allowed, a little more load. Effort 6 or 7 out of 10.' },
     ready:    { label: 'Ready',       hint: 'Jumps and hops come in. Effort 7 or 8 out of 10. Skip it the day before a hard run.' }
   };
-  var EQ_LABEL = { dumbbell: 'Dumbbell', kettlebell: 'Kettlebell', band: 'Resistance band', step: 'Step or bench' };
+  var EQ_LABEL = { dumbbell: 'Dumbbell', kettlebell: 'Kettlebell', band: 'Resistance band', step: 'Step or bench', sliders: 'Sliders or towel' };
+  var FORMAT_INFO = {
+    mix:   { label: 'Surprise me', hint: 'Each day gets AMRAP, EMOM or Power EMOM, and not the same one two days running if it can help it.' },
+    amrap: { label: 'AMRAP',       hint: 'Work through the list in order and repeat. Count rounds and reps.' },
+    emom:  { label: 'EMOM',        hint: 'Every minute on the minute you do one movement. Whatever is left of the minute is rest.' },
+    power: { label: 'Power EMOM',  hint: 'One short, explosive set each minute with lots of rest. Move fast, reset between reps, stop when the speed drops.' }
+  };
   var SLOT_FILTERS = [
     { id: 'all', label: 'All' }, { id: 'single', label: 'Single-leg' }, { id: 'core', label: 'Core' },
-    { id: 'lower', label: 'Both legs' }, { id: 'upper', label: 'Upper body' }, { id: 'cond', label: 'Conditioning' }
+    { id: 'lower', label: 'Both legs' }, { id: 'stab', label: 'Stability' }, { id: 'upper', label: 'Upper body' },
+    { id: 'cond', label: 'Conditioning' }, { id: 'pw', label: 'Power' }
   ];
 
   // ------------------------------------------------------------ state
@@ -202,10 +210,11 @@
     recent: TODAY ? TODAY.recent || {} : {},
     workout: null, source: 'published', swaps: 0,
     n: 0, status: 'idle', remain: DURATION, endAt: 0,
+    missed: [], mi: 0,
     muted: false, saved: false, toast: '',
     libSlot: 'all', libQuery: ''
   };
-  var publishedKey = TODAY ? TODAY.cfgKey : GEN.cfgKey(fallbackCfg);
+  var publishedKey = GEN.cfgKey(S.cfg);
   var publishedWorkout = TODAY ? TODAY.workout : null;
   var publishedDate = TODAY ? TODAY.date : localDate();
   if (!publishedWorkout) {
@@ -225,19 +234,59 @@
     return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   }
   function locked() { return S.status !== 'idle'; }
-  function ctx() { return { exercises: LIB, cfg: S.cfg, recent: S.recent }; }
+  function ctx() { return { exercises: LIB, cfg: S.cfg, recent: S.recent, lastFormat: S.workout ? fmtOf(S.workout) : undefined }; }
+
+  // Files published before formats existed have no `format`; they are AMRAPs.
+  function fmtOf(w) { return w.format || 'amrap'; }
+  function isTimed(w) { return fmtOf(w) !== 'amrap'; }
+  function minutesFor(i, len) { var out = []; for (var m = i; m < GEN.MINUTES; m += len) out.push(m + 1); return out; }
+  function elapsedMs() { var left = S.status === 'running' ? Math.max(0, S.endAt - Date.now()) : S.remain; return DURATION - left; }
+  function minuteIndex() { return Math.min(GEN.MINUTES - 1, Math.floor(elapsedMs() / 60000)); }
 
   function score() {
     var w = S.workout, len = w.moves.length;
+    if (isTimed(w)) {
+      var finished = S.status === 'done' ? GEN.MINUTES : Math.min(GEN.MINUTES, Math.floor(elapsedMs() / 60000));
+      var made = 0, treps = 0;
+      for (var m = 0; m < finished; m++) {
+        if (S.missed.indexOf(m) < 0) { made++; treps += w.moves[m % len].reps; }
+      }
+      return { timed: true, finished: finished, made: made, reps: treps, len: len };
+    }
     var rounds = Math.floor(S.n / len), extra = S.n % len;
     var reps = rounds * w.repsPerRound;
     for (var i = 0; i < extra; i++) reps += w.moves[i].reps;
-    return { rounds: rounds, extra: extra, reps: reps, len: len };
+    return { timed: false, rounds: rounds, extra: extra, reps: reps, len: len };
   }
   function scoreText(sc) {
+    if (sc.timed) return sc.made + ' of ' + sc.finished + ' minutes made, ' + sc.reps + ' reps';
     var r = sc.rounds + (sc.rounds === 1 ? ' round' : ' rounds');
     if (sc.extra) r += ' and ' + sc.extra + ' of ' + sc.len + ' movements';
     return r + ', ' + sc.reps + ' reps';
+  }
+  function statusText() {
+    if (S.status === 'idle') return 'Ready when you are';
+    if (S.status === 'paused') return 'Paused';
+    if (S.status === 'done') return 'Time';
+    var w = S.workout;
+    if (isTimed(w)) {
+      var mi = minuteIndex(), left = 60 - Math.floor((elapsedMs() - mi * 60000) / 1000);
+      return 'Minute ' + (mi + 1) + ' of ' + GEN.MINUTES + ', ' + mmss(Math.max(0, left)) + ' left';
+    }
+    var sc = score();
+    return 'Round ' + (sc.rounds + 1) + ', movement ' + (sc.extra + 1) + ' of ' + sc.len;
+  }
+  function summaryHtml(w) {
+    var f = fmtOf(w);
+    if (f === 'amrap') {
+      return 'Do the movements in order, then go again. Rest only when you need to. One round takes about <strong>' + mmss(w.roundSeconds) +
+        '</strong>, so aim for <strong>' + w.targetRounds + ' rounds</strong>, ' + w.repsPerRound + ' reps each.';
+    }
+    var secs = w.moves.map(function (m) { return m.sec; }), lo = Math.min.apply(null, secs), hi = Math.max.apply(null, secs);
+    var cycles = w.cycles || GEN.MINUTES / w.moves.length;
+    var tail = '<strong>' + w.moves.length + ' movements, ' + cycles + ' times through.</strong> Sets take ' + lo + ' to ' + hi + ' seconds.';
+    if (f === 'emom') return 'Every minute on the minute, do the next movement. Whatever time is left in the minute is your rest. ' + tail;
+    return 'One short, explosive set every minute. Move fast, reset fully between reps, and stop a set early if the reps slow down. ' + tail;
   }
   function qtyParts(m) {
     var unit = m.unit === 'sec' ? 'seconds' : m.unit === 'steps' ? 'steps' : 'reps';
@@ -251,7 +300,7 @@
   function applyConfig(next) {
     if (locked()) return;
     S.cfg = GEN.normalizeConfig(next);
-    S.n = 0; S.saved = false; S.remain = DURATION;
+    S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION;
     if (GEN.cfgKey(S.cfg) === publishedKey) {
       S.workout = publishedWorkout; S.source = TODAY ? 'published' : 'local-today';
     } else {
@@ -265,7 +314,7 @@
     if (locked()) return;
     var seed = 'shuffle|' + Math.random().toString(36).slice(2);
     S.workout = GEN.generate(ctx(), seed);
-    S.source = 'shuffled'; S.swaps = 0; S.n = 0; S.saved = false; S.remain = DURATION;
+    S.source = 'shuffled'; S.swaps = 0; S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION;
     if (!silent) flash('New workout');
     render();
   }
@@ -273,7 +322,7 @@
     if (locked()) return;
     S.cfg = TODAY ? GEN.normalizeConfig(TODAY.config) : fallbackCfg;
     S.workout = publishedWorkout; S.source = TODAY ? 'published' : 'local-today';
-    S.swaps = 0; S.n = 0; S.saved = false; S.remain = DURATION;
+    S.swaps = 0; S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION;
     render();
   }
 
@@ -295,7 +344,7 @@
   }
   function start() {
     try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (e) { audio = null; }
-    S.status = 'running'; S.endAt = Date.now() + S.remain; lastWhole = -1;
+    S.status = 'running'; S.endAt = Date.now() + S.remain; lastWhole = -1; S.mi = minuteIndex();
     clearInterval(timerId); timerId = setInterval(tick, 200);
     keepAwake(true); render();
   }
@@ -306,40 +355,52 @@
   function tick() {
     var left = Math.max(0, S.endAt - Date.now());
     S.remain = left;
-    var whole = Math.ceil(left / 1000);
+    var whole = Math.ceil(left / 1000), timed = isTimed(S.workout), r = whole % 60;
     if (whole !== lastWhole) {
       lastWhole = whole;
       if (whole > 0 && whole <= 3) beep(660, 120);
+      // EMOM formats: count down the last three seconds of every minute and sound the change of minute.
+      else if (timed && whole > 0 && r > 0 && r <= 3) beep(660, 120);
+      else if (timed && whole > 0 && r === 0 && whole < GEN.MINUTES * 60) beep(880, 250);
       if (whole === 0) { beep(990, 700); try { navigator.vibrate && navigator.vibrate([300, 100, 300]); } catch (e) {} }
     }
     if (left <= 0) { clearInterval(timerId); S.status = 'done'; keepAwake(false); render(); return; }
+    if (timed) {
+      var mi = minuteIndex();
+      if (mi !== S.mi) { S.mi = mi; render(); return; }
+    }
     paintClock();
   }
   function paintClock() {
-    var c = document.getElementById('clock'), b = document.getElementById('barfill');
+    var c = document.getElementById('clock'), b = document.getElementById('barfill'), s = document.getElementById('status');
     if (c) c.textContent = mmss(Math.ceil(S.remain / 1000));
     if (b) b.style.width = (100 - (S.remain / DURATION) * 100) + '%';
+    if (s) s.textContent = statusText();
   }
   function reset() {
     clearInterval(timerId); keepAwake(false);
-    S.status = 'idle'; S.remain = DURATION; S.n = 0; S.saved = false; render();
+    S.status = 'idle'; S.remain = DURATION; S.n = 0; S.missed = []; S.saved = false; render();
   }
   function done() { if (S.status === 'running') { S.n++; render(); } }
   function undo() { if (S.n > 0 && S.status !== 'idle') { S.n--; S.saved = false; render(); } }
 
   function saveScore() {
     var sc = score(), log = readLog();
-    log.unshift({ date: localDate(), title: S.workout.title, phase: S.cfg.phase, rounds: sc.rounds, extra: sc.extra, len: sc.len, reps: sc.reps });
+    var entry = { date: localDate(), title: S.workout.title, format: fmtOf(S.workout), phase: S.cfg.phase, len: sc.len, reps: sc.reps };
+    if (sc.timed) { entry.made = sc.made; entry.finished = sc.finished; } else { entry.rounds = sc.rounds; entry.extra = sc.extra; }
+    log.unshift(entry);
     writeLog(log); S.saved = true; flash('Score saved'); render();
   }
 
   // ------------------------------------------------------------ copy
   function workoutText() {
-    var w = S.workout, lines = [w.title + ' (AMRAP ' + w.minutes + ', ' + PHASE_INFO[w.phase].label + ')'];
+    var w = S.workout, timed = isTimed(w), len = w.moves.length;
+    var lines = [w.title + ' (' + GEN.FORMAT_LABEL[fmtOf(w)] + ' ' + w.minutes + ', ' + PHASE_INFO[w.phase].label + ')'];
     w.moves.forEach(function (m, i) {
-      lines.push((i + 1) + '. ' + GEN.qtyLabel(m) + ' ' + m.name + (m.uses ? ' (' + m.uses + ')' : ''));
+      lines.push((i + 1) + '. ' + GEN.qtyLabel(m) + ' ' + m.name + (m.uses ? ' (' + m.uses + ')' : '') + (timed ? ' [minutes ' + minutesFor(i, len).join(', ') + ']' : ''));
     });
-    lines.push('About ' + mmss(w.roundSeconds) + ' per round, aim for ' + w.targetRounds + ' rounds.');
+    if (timed) lines.push('Every minute on the minute, ' + (w.cycles || GEN.MINUTES / len) + ' times through.');
+    else lines.push('About ' + mmss(w.roundSeconds) + ' per round, aim for ' + w.targetRounds + ' rounds.');
     return lines.join('\n');
   }
   function copy() {
@@ -364,6 +425,9 @@
   // ------------------------------------------------------------ render
   function renderControls() {
     var lock = locked(), dis = lock ? ' disabled' : '';
+    var formats = GEN.FORMAT_CHOICES.map(function (f) {
+      return '<button class="chip" data-act="format" data-v="' + f + '" aria-pressed="' + (S.cfg.format === f) + '"' + dis + '>' + FORMAT_INFO[f].label + '</button>';
+    }).join('');
     var phases = GEN.PHASES.map(function (p) {
       return '<button class="chip" data-act="phase" data-v="' + p + '" aria-pressed="' + (S.cfg.phase === p) + '"' + dis + '>' + PHASE_INFO[p].label + '</button>';
     }).join('');
@@ -379,6 +443,7 @@
     return '<details class="panel" id="filters"' + (S.filtersOpen === false ? '' : ' open') + '>' +
       '<summary>Adjust this workout</summary><div class="panel-body">' +
       (lock ? '<p class="locked-note">Filters are locked while the clock is going. Reset to change them.</p>' : '') +
+      '<div><p class="group-label">Format</p><div class="seg">' + formats + '</div><p class="hint">' + FORMAT_INFO[S.cfg.format].hint + '</p></div>' +
       '<div><p class="group-label">Where you are</p><div class="seg">' + phases + '</div><p class="hint">' + PHASE_INFO[S.cfg.phase].hint + '</p></div>' +
       '<div><p class="group-label">What you have</p><div class="chips"><span class="chip fixed">Bodyweight</span>' + eq + '</div></div>' +
       '<div><p class="group-label">How much</p><div class="seg">' + counts + '</div></div>' +
@@ -390,14 +455,17 @@
   }
 
   function renderMoves() {
-    var w = S.workout, len = w.moves.length, cur = S.status === 'idle' ? -1 : S.n % len;
+    var w = S.workout, len = w.moves.length, timed = isTimed(w);
+    var cur = S.status === 'idle' || S.status === 'done' ? -1 : timed ? minuteIndex() % len : S.n % len;
     return '<ol class="moves">' + w.moves.map(function (m, i) {
       var q = qtyParts(m);
       var cls = 'move' + (i === cur ? ' now' : '');
       var tags = '';
-      if (m.slot === 'single') tags += '<span class="tag single">Single-leg</span>';
+      if (m.slot === 'single' || m.sl) tags += '<span class="tag single">Single-leg</span>';
       if (m.slot === 'core') tags += '<span class="tag core">Core</span>';
+      if (m.slot === 'stab') tags += '<span class="tag core">Stability</span>';
       if (m.uses) tags += '<span class="tag">' + esc(EQ_LABEL[m.uses] || m.uses) + '</span>';
+      if (timed) tags += '<span class="tag">Minutes ' + minutesFor(i, len).join(', ') + '</span>';
       return '<li class="' + cls + '"' + (i === cur ? ' aria-current="step"' : '') + '>' +
         '<div class="bib"><span class="n">' + q.n + '</span><span class="u">' + q.u + '</span></div>' +
         '<div class="info"><h3>' + esc(m.name) + '</h3><p>' + esc(m.cue) + '</p><div class="tags">' + tags + '</div></div>' +
@@ -407,40 +475,59 @@
   }
 
   function renderClock() {
-    var sc = score(), w = S.workout;
-    var status = S.status === 'idle' ? 'Ready when you are' : S.status === 'paused' ? 'Paused' : S.status === 'done' ? 'Time' : 'Round ' + (sc.rounds + 1) + ', movement ' + (sc.extra + 1) + ' of ' + sc.len;
+    var sc = score();
+    var sub = sc.timed
+      ? (sc.finished === 0 ? 'No minutes yet' : sc.made + ' of ' + sc.finished + (sc.finished === 1 ? ' minute' : ' minutes') + ' made')
+      : sc.rounds + (sc.rounds === 1 ? ' round' : ' rounds') + (sc.extra ? ' + ' + sc.extra + ' of ' + sc.len : '');
     return '<section class="clock-card" aria-label="Timer">' +
       '<div class="clock-top"><div class="clock" id="clock" role="timer">' + mmss(Math.ceil(S.remain / 1000)) + '</div>' +
-      '<div class="score" aria-live="polite"><b>' + sc.reps + ' reps</b>' + sc.rounds + (sc.rounds === 1 ? ' round' : ' rounds') + (sc.extra ? ' + ' + sc.extra + ' of ' + sc.len : '') + '</div></div>' +
+      '<div class="score" aria-live="polite"><b>' + sc.reps + ' reps</b>' + sub + '</div></div>' +
       '<div class="bar"><i id="barfill" style="width:' + (100 - (S.remain / DURATION) * 100) + '%"></i></div>' +
-      '<div class="clock-foot"><span>' + status + '</span><span>' +
+      '<div class="clock-foot"><span id="status">' + statusText() + '</span><span>' +
       '<button class="link" data-act="mute">' + (S.muted ? 'Sound off' : 'Sound on') + '</button>' +
       (S.status !== 'idle' ? ' &nbsp; <button class="link" data-act="reset">Reset</button>' : '') + '</span></div></section>';
   }
 
   function renderDock() {
-    var w = S.workout, cur = w.moves[S.n % w.moves.length];
-    var main, undoDis = (S.n === 0 || S.status === 'idle') ? ' disabled' : '';
+    var w = S.workout, timed = isTimed(w);
+    var left, main, side = '<span></span>';
+    if (timed) {
+      // The clock drives an EMOM, so the only thing to tell it is a minute you could not finish.
+      left = '<span></span>';
+      if (S.status === 'running') {
+        var missed = S.missed.indexOf(minuteIndex()) >= 0;
+        left = '<button class="btn" data-act="miss" aria-pressed="' + missed + '">' + (missed ? 'Missed, tap to undo' : 'Missed this minute') + '</button>';
+        main = '<button class="btn main" data-act="pause">Pause</button>';
+      }
+    } else {
+      left = '<button class="btn" data-act="undo"' + ((S.n === 0 || S.status === 'idle') ? ' disabled' : '') + '>Undo</button>';
+      if (S.status === 'running') {
+        main = '<button class="btn main" data-act="done"><small>Tap when finished</small>' + esc(w.moves[S.n % w.moves.length].name) + ' done</button>';
+        side = '<button class="btn" data-act="pause">Pause</button>';
+      }
+    }
     if (S.status === 'idle') main = '<button class="btn main" data-act="start">Start ' + GEN.MINUTES + ':00</button>';
-    else if (S.status === 'running') main = '<button class="btn main" data-act="done"><small>Tap when finished</small>' + esc(cur.name) + ' done</button>';
     else if (S.status === 'paused') main = '<button class="btn main" data-act="start">Resume</button>';
-    else main = '<button class="btn main" data-act="save"' + (S.saved ? ' disabled' : '') + '>' + (S.saved ? 'Score saved' : 'Save score') + '</button>';
-    var side = S.status === 'running' ? '<button class="btn" data-act="pause">Pause</button>' : '<span></span>';
-    return '<div class="dock"><div class="dock-inner"><button class="btn" data-act="undo"' + undoDis + '>Undo</button>' + main + side + '</div></div>';
+    else if (S.status === 'done') main = '<button class="btn main" data-act="save"' + (S.saved ? ' disabled' : '') + '>' + (S.saved ? 'Score saved' : 'Save score') + '</button>';
+    return '<div class="dock"><div class="dock-inner">' + left + main + side + '</div></div>';
   }
 
   function renderFinish() {
     if (S.status !== 'done') return '';
     var sc = score();
-    return '<section class="finish" aria-live="polite"><h2>Time</h2><p>' + esc(scoreText(sc)) + '. Count the last movement you finished, then save it.</p>' +
+    return '<section class="finish" aria-live="polite"><h2>Time</h2><p>' + esc(scoreText(sc)) +
+      (sc.timed ? '. Save it to keep it with your other scores.' : '. Count the last movement you finished, then save it.') + '</p>' +
       '<button class="btn" data-act="reset">Start over</button></section>';
   }
 
   function renderLog() {
     var log = readLog();
     var items = log.slice(0, 6).map(function (e) {
-      var r = e.rounds + (e.rounds === 1 ? ' round' : ' rounds') + (e.extra ? ' + ' + e.extra + '/' + e.len : '');
-      return '<li><span>' + esc(e.date) + ', ' + esc(e.title) + '</span><span>' + r + ', ' + e.reps + ' reps</span></li>';
+      var r = e.made !== undefined
+        ? e.made + ' of ' + e.finished + ' minutes'
+        : e.rounds + (e.rounds === 1 ? ' round' : ' rounds') + (e.extra ? ' + ' + e.extra + '/' + e.len : '');
+      var kind = e.format && GEN.FORMAT_LABEL[e.format] ? ' (' + GEN.FORMAT_LABEL[e.format] + ')' : '';
+      return '<li><span>' + esc(e.date) + ', ' + esc(e.title) + kind + '</span><span>' + r + ', ' + e.reps + ' reps</span></li>';
     }).join('');
     return '<section class="section"><h2>Your scores</h2>' +
       (items ? '<ul class="log">' + items + '</ul><p class="small">Saved on this device only.</p>'
@@ -453,7 +540,8 @@
     var all = LIB.filter(function (e) { return GEN.eligible(e, S.cfg); });
     var list = all.filter(function (e) {
       var slot = e.slot === 'push' || e.slot === 'pull' ? 'upper' : e.slot;
-      return (S.libSlot === 'all' || S.libSlot === slot) && (!q || e.name.toLowerCase().indexOf(q) >= 0);
+      var inSlot = S.libSlot === 'all' || (S.libSlot === 'pw' ? e.pw : S.libSlot === slot);
+      return inSlot && (!q || e.name.toLowerCase().indexOf(q) >= 0);
     });
     var chips = SLOT_FILTERS.map(function (f) {
       return '<button class="chip" data-act="libslot" data-v="' + f.id + '" aria-pressed="' + (S.libSlot === f.id) + '">' + f.label + '</button>';
@@ -476,13 +564,13 @@
     var stale = (TODAY && S.source === 'published' && TODAY.date !== localDate()) ? '<li>Published for ' + esc(prettyDate(TODAY.date)) + '. Today\'s should land soon.</li>' : '';
     var html =
       '<header><p class="lede">Return-to-run strength</p><h1>' + esc(w.title) + '</h1>' +
-      '<ul class="facts"><li>' + esc(prettyDate(S.source === 'published' ? publishedDate : localDate())) + '</li><li>' + GEN.MINUTES + ' minute AMRAP</li><li>' + PHASE_INFO[S.cfg.phase].label + '</li><li>' + badge + '</li>' + stale + '</ul>' +
-      '<p class="summary">Do the movements in order, then go again. Rest only when you need to. One round takes about <strong>' + mmss(w.roundSeconds) + '</strong>, so aim for <strong>' + w.targetRounds + ' rounds</strong>, ' + w.repsPerRound + ' reps each.</p></header>' +
+      '<ul class="facts"><li>' + esc(prettyDate(S.source === 'published' ? publishedDate : localDate())) + '</li><li>' + GEN.MINUTES + ' minute ' + GEN.FORMAT_LABEL[fmtOf(w)] + '</li><li>' + PHASE_INFO[S.cfg.phase].label + '</li><li>' + badge + '</li>' + stale + '</ul>' +
+      '<p class="summary">' + summaryHtml(w) + '</p></header>' +
       renderClock() + renderMoves() + renderFinish() + renderControls() +
-      '<section class="section"><h2>Before you start</h2><p>Three minutes: march in place for one minute, ten leg swings each side, ten air squats, then five slow reverse lunges each side. Pick loads that leave two reps in reserve every round.</p>' +
+      '<section class="section"><h2>Before you start</h2><p>Three minutes: march in place for one minute, ten leg swings each side, ten air squats, then five slow reverse lunges each side. Pick loads that leave two reps in reserve every round or minute.</p>' +
       '<p class="small">This is general exercise guidance, not medical advice. If anything pinches (Achilles, shin, knee, hip), swap it with the arrow button and mention it to your physio.</p></section>' +
       renderLog() + renderLibrary() +
-      '<section class="section"><h2>How the daily pick works</h2><p class="small">A GitHub Action publishes a new workout each morning. If you don\'t like it, Shuffle gives you a one-off here. To replace the published pick, run the Action by hand from the repository\'s Actions tab.</p></section>' +
+      '<section class="section"><h2>How the daily pick works</h2><p class="small">A GitHub Action publishes a new workout each morning, with the format (AMRAP, EMOM or Power EMOM) picked for you unless you set one. If you don\'t like it, Shuffle gives you a one-off here. To replace the published pick, run the Action by hand from the repository\'s Actions tab.</p></section>' +
       renderDock();
     var app = document.getElementById('app');
     var keepScroll = window.scrollY, openF = document.getElementById('filters'), fo = openF ? openF.open : true;
@@ -498,7 +586,8 @@
     var t = ev.target.closest('[data-act]'); if (!t || t.disabled) return;
     var act = t.getAttribute('data-act'), v = t.getAttribute('data-v');
     var c = JSON.parse(JSON.stringify(S.cfg));
-    if (act === 'phase') { c.phase = v; applyConfig(c); }
+    if (act === 'format') { c.format = v; applyConfig(c); }
+    else if (act === 'phase') { c.phase = v; applyConfig(c); }
     else if (act === 'eq') { var i = c.equipment.indexOf(v); if (i >= 0) c.equipment.splice(i, 1); else c.equipment.push(v); applyConfig(c); }
     else if (act === 'count') { c.movements = Number(v); applyConfig(c); }
     else if (act === 'tog') { c[v] = !c[v]; applyConfig(c); }
@@ -510,6 +599,11 @@
     else if (act === 'pause') pause();
     else if (act === 'done') done();
     else if (act === 'undo') undo();
+    else if (act === 'miss') {
+      var mi = minuteIndex(), k = S.missed.indexOf(mi);
+      if (k >= 0) S.missed.splice(k, 1); else S.missed.push(mi);
+      S.saved = false; render();
+    }
     else if (act === 'reset') reset();
     else if (act === 'save') saveScore();
     else if (act === 'mute') { S.muted = !S.muted; render(); }

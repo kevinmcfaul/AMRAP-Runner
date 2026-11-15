@@ -6,8 +6,8 @@
  *   node scripts/generate.js --reroll   force a brand-new workout for today
  *
  * Overrides (used by the GitHub Action's "Run workflow" form), all optional:
- *   PHASE=easing|building|ready   EQUIPMENT=dumbbell,band   MOVEMENTS=4|5
- *   DOUBLE_SINGLE=true            DOUBLE_CORE=true          REROLL=true
+ *   FORMAT=mix|amrap|emom|power   PHASE=easing|building|ready   EQUIPMENT=dumbbell,band   MOVEMENTS=4|5
+ *   DOUBLE_SINGLE=true            DOUBLE_CORE=true              REROLL=true
  *
  * Writes: data/today.json, data/today.js (loaded by the page), data/history.json, TODAY.md
  */
@@ -25,6 +25,7 @@ const readJson = (file, fallback) => {
 const fileCfg = readJson(p('config.json'), {});
 const env = process.env;
 const overrides = {};
+if (env.FORMAT) overrides.format = env.FORMAT.trim().toLowerCase();
 if (env.PHASE) overrides.phase = env.PHASE.trim();
 if (env.EQUIPMENT !== undefined && env.EQUIPMENT.trim() !== '')
   overrides.equipment = env.EQUIPMENT.split(/[,\s]+/).filter(Boolean).map((s) => s.toLowerCase());
@@ -46,19 +47,18 @@ if (existing && existing.date === date && existing.cfgKey === key && !reroll) {
 }
 
 const history = readJson(p('data', 'history.json'), { days: {} });
+const priorDates = Object.keys(history.days).filter((d) => d < date).sort();
 // Count how often each movement showed up in the last 7 days (excluding today) so we rotate.
 const recent = {};
-Object.keys(history.days)
-  .filter((d) => d < date)
-  .sort()
-  .slice(-7)
-  .forEach((d) => history.days[d].ids.forEach((id) => (recent[id] = (recent[id] || 0) + 1)));
+priorDates.slice(-7).forEach((d) => history.days[d].ids.forEach((id) => (recent[id] = (recent[id] || 0) + 1)));
+// When the format is "mix", avoid repeating yesterday's format.
+const lastFormat = priorDates.length ? history.days[priorDates[priorDates.length - 1]].format : undefined;
 
 const salt = reroll
   ? Date.now().toString(36)
   : existing && existing.date === date ? existing.salt : '';
 const seed = `${date}|${salt}|${key}`;
-const workout = Gen.generate({ exercises, cfg, recent }, seed);
+const workout = Gen.generate({ exercises, cfg, recent, lastFormat }, seed);
 
 const problems = Gen.validate(workout, cfg, exercises);
 if (problems.length) {
@@ -69,20 +69,20 @@ if (problems.length) {
 const payload = {
   date, timezone: tz, generatedAt: new Date().toISOString(),
   trigger: env.GITHUB_EVENT_NAME || 'local',
-  salt, config: cfg, cfgKey: key, recent, workout,
+  salt, config: cfg, cfgKey: key, recent, lastFormat: lastFormat || null, workout,
 };
 
 fs.mkdirSync(p('data'), { recursive: true });
 fs.writeFileSync(p('data', 'today.json'), JSON.stringify(payload, null, 2) + '\n');
 writeBrowserFile(payload);
 
-history.days[date] = { title: workout.title, ids: workout.moves.map((m) => m.id) };
+history.days[date] = { title: workout.title, format: workout.format, ids: workout.moves.map((m) => m.id) };
 const keep = Object.keys(history.days).sort().slice(-30);
 history.days = Object.fromEntries(keep.map((d) => [d, history.days[d]]));
 fs.writeFileSync(p('data', 'history.json'), JSON.stringify(history, null, 2) + '\n');
 
 fs.writeFileSync(p('TODAY.md'), toMarkdown(payload));
-console.log(`Generated ${date}: ${workout.title} (${workout.moves.map((m) => m.name).join(', ')})`);
+console.log(`Generated ${date}: ${workout.title}, ${Gen.FORMAT_LABEL[workout.format]} (${workout.moves.map((m) => m.name).join(', ')})`);
 
 function writeBrowserFile(pl) {
   fs.mkdirSync(p('data'), { recursive: true });
@@ -96,19 +96,40 @@ function mmss(s) {
 function toMarkdown(pl) {
   const w = pl.workout;
   const phaseName = { easing: 'Easing back', building: 'Building', ready: 'Ready' }[w.phase];
-  const lines = [
-    `# ${w.title}`,
-    '',
-    `**${pl.date}**. AMRAP ${w.minutes} minutes, ${phaseName} phase.`,
-    '',
-    'Work through the list in order with no planned rest, then start again. Count rounds and reps until the clock hits zero.',
-    '',
-  ];
+  const label = Gen.FORMAT_LABEL[w.format];
+  const lines = [`# ${w.title}`, '', `**${pl.date}**. ${w.minutes} minute ${label}, ${phaseName} phase.`, ''];
+
+  if (w.format === 'amrap') {
+    lines.push('Work through the list in order with no planned rest, then start again. Count rounds and reps until the clock hits zero.', '');
+  } else if (w.format === 'emom') {
+    lines.push(
+      'Every minute on the minute, do the next movement. Whatever time is left in the minute is your rest. ' +
+      `${w.moves.length} movements, ${w.cycles} times through.`, ''
+    );
+  } else {
+    lines.push(
+      'Every minute on the minute, one short explosive set. Move fast, reset fully between reps, and rest for the rest of the minute. ' +
+      `Stop a set early if the reps slow down. ${w.moves.length} movements, ${w.cycles} times through.`, ''
+    );
+  }
+
   w.moves.forEach((m, i) => {
-    const tags = [m.slot === 'single' ? 'single-leg' : '', m.slot === 'core' ? 'core' : '', m.uses || ''].filter(Boolean);
-    lines.push(`${i + 1}. **${Gen.qtyLabel(m)}** ${m.name}${tags.length ? ` (${tags.join(', ')})` : ''}. ${m.cue}`);
+    const tags = [m.slot === 'single' || m.sl ? 'single-leg' : '', m.slot === 'core' ? 'core' : '', m.slot === 'stab' ? 'stability' : '', m.uses || ''].filter(Boolean);
+    const when = w.format === 'amrap' ? '' : ` Minutes ${minutesFor(i, w.moves.length, w.minutes).join(', ')}.`;
+    lines.push(`${i + 1}. **${Gen.qtyLabel(m)}** ${m.name}${tags.length ? ` (${tags.join(', ')})` : ''}.${when} ${m.cue}`);
   });
-  lines.push('', `One round takes about ${mmss(w.roundSeconds)}, so aim for roughly ${w.targetRounds} rounds. That is ${w.repsPerRound} reps per round (holds not counted).`);
+
+  if (w.format === 'amrap') {
+    lines.push('', `One round takes about ${mmss(w.roundSeconds)}, so aim for roughly ${w.targetRounds} rounds. That is ${w.repsPerRound} reps per round (holds not counted).`);
+  } else {
+    lines.push('', `${w.repsPerRound} reps in one pass through the list (holds not counted). Score yourself by the minutes you finished the full set.`);
+  }
   lines.push('', '_Not medical advice. If anything pinches, skip it and ask your physio._', '');
   return lines.join('\n');
+}
+
+function minutesFor(index, len, total) {
+  const out = [];
+  for (let m = index; m < total; m += len) out.push(m + 1);
+  return out;
 }

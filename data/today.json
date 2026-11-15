@@ -1,17 +1,18 @@
 {
-  "date": "2026-11-14",
+  "date": "2026-11-15",
   "timezone": "America/Toronto",
-  "generatedAt": "2026-11-14T12:23:45.364Z",
-  "trigger": "push",
-  "salt": "",
+  "generatedAt": "2026-11-15T16:14:43.227Z",
+  "trigger": "local",
+  "salt": "mwi1c5y2",
   "config": {
     "phase": "easing",
     "equipment": [],
     "movements": 5,
     "doubleSingle": false,
-    "doubleCore": false
+    "doubleCore": false,
+    "format": "mix"
   },
-  "cfgKey": "easing|bodyweight|5|0|0",
+  "cfgKey": "easing|bodyweight|5|0|0|mix",
   "recent": {
     "single-leg-calf-raise": 1,
     "push-up": 1,
@@ -19,31 +20,36 @@
     "glute-bridge": 1,
     "high-knee-march": 1
   },
+  "lastFormat": null,
   "workout": {
-    "seed": "2026-11-14||easing|bodyweight|5|0|0",
-    "title": "Even Kick",
-    "format": "AMRAP",
+    "seed": "2026-11-15|mwi1c5y2|easing|bodyweight|5|0|0|mix",
+    "title": "Easy Trail",
+    "format": "amrap",
     "minutes": 20,
     "phase": "easing",
     "moves": [
       {
-        "id": "single-leg-rdl",
-        "name": "Single-leg Romanian deadlift",
+        "id": "single-leg-power-bridge",
+        "name": "Single-leg power bridge",
         "slot": "single",
-        "pat": "hinge",
-        "qty": 6,
+        "group": "single",
+        "pat": "bridge",
+        "sl": true,
+        "qty": 8,
         "unit": "reps",
         "side": true,
         "uses": null,
-        "cue": "Hinge from the hip, back leg long, soft standing knee, hips square.",
-        "sec": 52,
-        "reps": 12
+        "cue": "Drive the hips up fast from one heel, squeeze at the top, lower for two counts.",
+        "sec": 50,
+        "reps": 16
       },
       {
         "id": "prone-ytw",
         "name": "Prone Y-T raise",
         "slot": "pull",
+        "group": "upper",
         "pat": "pull",
+        "sl": false,
         "qty": 8,
         "unit": "reps",
         "side": false,
@@ -53,47 +59,54 @@
         "reps": 8
       },
       {
-        "id": "bicycle-crunch",
-        "name": "Bicycle crunch",
+        "id": "lying-leg-lower",
+        "name": "Lying leg lower",
         "slot": "core",
-        "pat": "rot",
-        "qty": 16,
+        "group": "core",
+        "pat": "flex",
+        "sl": false,
+        "qty": 6,
         "unit": "reps",
         "side": false,
         "uses": null,
-        "cue": "Total reps. Slow and controlled, elbow toward the opposite knee.",
-        "sec": 30,
-        "reps": 16
+        "cue": "Lower straight legs slowly, stop before the low back lifts.",
+        "sec": 27,
+        "reps": 6
       },
       {
-        "id": "squat-calf-raise",
-        "name": "Squat to calf raise",
-        "slot": "lower",
-        "pat": "squat",
+        "id": "single-leg-balance",
+        "name": "Single-leg balance",
+        "slot": "stab",
+        "group": "lower",
+        "pat": "balance",
+        "sl": true,
+        "qty": 20,
+        "unit": "sec",
+        "side": true,
+        "uses": null,
+        "cue": "Stand tall on a soft knee, hips level, the other foot hovering. Fingertips near a wall.",
+        "sec": 50,
+        "reps": 0
+      },
+      {
+        "id": "side-lying-leg-raise",
+        "name": "Side-lying leg raise",
+        "slot": "stab",
+        "group": "fifth",
+        "pat": "hipabd",
+        "sl": false,
         "qty": 10,
         "unit": "reps",
-        "side": false,
+        "side": true,
         "uses": null,
-        "cue": "Stand up, then rise onto the toes before the next squat.",
-        "sec": 36,
-        "reps": 10
-      },
-      {
-        "id": "shadow-boxing",
-        "name": "Shadow boxing",
-        "slot": "cond",
-        "pat": "cardio",
-        "qty": 30,
-        "unit": "reps",
-        "side": false,
-        "uses": null,
-        "cue": "Total punches. Light on the feet, rotate through the hips.",
-        "sec": 27,
-        "reps": 30
+        "cue": "Body in one line, lift the top leg slightly behind you with the toes pointing forward.",
+        "sec": 60,
+        "reps": 20
       }
     ],
-    "roundSeconds": 175,
-    "repsPerRound": 76,
-    "targetRounds": 6
+    "roundSeconds": 217,
+    "repsPerRound": 50,
+    "cycles": null,
+    "targetRounds": 5
   }
 }

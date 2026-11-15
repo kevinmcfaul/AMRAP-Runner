@@ -1,15 +1,15 @@
-# Even Kick
+# Easy Trail
 
-**2026-11-14**. AMRAP 20 minutes, Easing back phase.
+**2026-11-15**. 20 minute AMRAP, Easing back phase.
 
 Work through the list in order with no planned rest, then start again. Count rounds and reps until the clock hits zero.
 
-1. **6 reps each side** Single-leg Romanian deadlift (single-leg). Hinge from the hip, back leg long, soft standing knee, hips square.
+1. **8 reps each side** Single-leg power bridge (single-leg). Drive the hips up fast from one heel, squeeze at the top, lower for two counts.
 2. **8 reps** Prone Y-T raise. Face down, lift the arms into a Y then a T. Thumbs up.
-3. **16 reps** Bicycle crunch (core). Total reps. Slow and controlled, elbow toward the opposite knee.
-4. **10 reps** Squat to calf raise. Stand up, then rise onto the toes before the next squat.
-5. **30 reps** Shadow boxing. Total punches. Light on the feet, rotate through the hips.
+3. **6 reps** Lying leg lower (core). Lower straight legs slowly, stop before the low back lifts.
+4. **20 sec each side** Single-leg balance (single-leg, stability). Stand tall on a soft knee, hips level, the other foot hovering. Fingertips near a wall.
+5. **10 reps each side** Side-lying leg raise (stability). Body in one line, lift the top leg slightly behind you with the toes pointing forward.
 
-One round takes about 2:55, so aim for roughly 6 rounds. That is 76 reps per round (holds not counted).
+One round takes about 3:37, so aim for roughly 5 rounds. That is 50 reps per round (holds not counted).
 
 _Not medical advice. If anything pinches, skip it and ask your physio._

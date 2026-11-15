@@ -1,8 +1,14 @@
-# 20-minute AMRAP for a runner getting back into it
+# 20-minute workouts for a runner getting back into it
 
-A new "as many rounds and reps as possible in 20 minutes" workout every morning. Every workout has at least one single-leg movement and at least one core movement, and the movements and rep counts scale to where you are in your return to running.
+A new 20-minute workout every morning, in one of three formats. Every workout has at least one single-leg movement and at least one core movement, and the movements and rep counts scale to where you are in your return to running.
 
-The workout format is borrowed from sites like The Twenty Minute Marriage: a short list of movements, done in order, repeated until the clock runs out. The movements here are chosen for runners (calf raises, single-leg hinges, step-ups, side planks, dead bugs, and so on).
+| Format | How it runs |
+| --- | --- |
+| **AMRAP** | Work through the list in order and repeat. As many rounds and reps as you can in 20 minutes. |
+| **EMOM** | Every minute on the minute, one movement, then rest until the minute turns over. Sets are sized to about 35 seconds of work. You cycle through the list (4 movements five times, or 5 movements four times). |
+| **Power EMOM** | Like EMOM, but each set is short and explosive (about 20 seconds of work) with lots of rest. Only movements marked as power movements are used, plus one core movement. Quality over quantity. |
+
+By default (`"format": "mix"`) each day gets one of the three, weighted toward AMRAP and EMOM, and avoids repeating yesterday's format. The format style is borrowed from sites like The Twenty Minute Marriage. The movements here are chosen for runners (calf raises, single-leg hinges, step-ups, side planks, dead bugs, and so on).
 
 ## Set it up (about five minutes)
 
@@ -17,7 +23,7 @@ Pages is free for public repositories. Private repositories need a paid GitHub p
 ## Don't like today's workout?
 
 - **Quick, on your own device:** open the site and tap **Shuffle**, or tap the arrow on any single movement to swap it. Swaps keep the single-leg and core rules intact. Nothing is saved to the repo.
-- **Replace the published one:** **Actions > Daily workout > Run workflow**. Leave "Replace today's workout" ticked. You can also change phase, equipment or movement count for that one run.
+- **Replace the published one:** **Actions > Daily workout > Run workflow**. Leave "Replace today's workout" ticked. You can also change format, phase, equipment or movement count for that one run.
 
 ## Change your defaults
 
@@ -26,6 +32,7 @@ Edit `config.json` and commit:
 ```json
 {
   "timezone": "America/Toronto",
+  "format": "mix",
   "phase": "easing",
   "equipment": [],
   "movements": 5,
@@ -34,14 +41,19 @@ Edit `config.json` and commit:
 }
 ```
 
+- `format`: `mix` (a different format each day), `amrap`, `emom` or `power`.
 - `phase`: `easing` (no impact, lighter reps), `building` (light impact allowed), `ready` (jumps and hops included). Move up when the current phase feels easy and your runs are going well.
-- `equipment`: any of `dumbbell`, `kettlebell`, `band`, `step`. Empty means bodyweight only.
+- `equipment`: any of `dumbbell`, `kettlebell`, `band`, `step` (step or bench), `sliders` (or a towel on a smooth floor). Empty means bodyweight only.
 - `movements`: 4 or 5 per round.
 - `doubleSingle` / `doubleCore`: ask for two single-leg or two core movements.
 
 ## Add or change movements
 
-Everything lives in `lib/exercises.js`. Each entry says which slot it fills (`single`, `lower`, `push`, `pull`, `core`, `cond`), what equipment it needs, how much impact it has, and the reps for each phase. The generator avoids repeating a movement pattern within a workout and rotates away from anything used in the last seven days.
+Everything lives in `lib/exercises.js`. Each entry says which slot it fills (`single`, `lower`, `push`, `pull`, `core`, `cond`, `stab`), what equipment it needs, how much impact it has, and the reps for each phase. `stab` is for runner stability and prehab work (clamshells, balance, tibialis raises and so on). It fills part of the "both legs" slot and part of the fifth movement.
+
+The `POWER` list at the bottom of that file says which movements Power EMOM may use. The easing phase has no jumping, so its power movements are fast concentric versions (speed squats, explosive bridges, reverse lunge to knee drive) that stay on the floor. Jumps, hops and bounds join at Building and Ready.
+
+Movements done on one leg but outside the single-leg slot (balance, A-skips, bounding) carry `sl: true`, so they get the single-leg tag. Only the `single` slot counts toward the "at least one single-leg movement" rule, so a workout never relies on a balance hold for that. The generator avoids repeating a movement pattern within a workout and rotates away from anything used in the last seven days.
 
 Run `npm test` after editing. It checks the library and generates a few thousand workouts to confirm every one has single-leg and core work and respects phase and equipment.
 

@@ -10,14 +10,15 @@
         "high-knee-march"
       ]
     },
-    "2026-11-14": {
-      "title": "Even Kick",
+    "2026-11-15": {
+      "title": "Easy Trail",
+      "format": "amrap",
       "ids": [
-        "single-leg-rdl",
+        "single-leg-power-bridge",
         "prone-ytw",
-        "bicycle-crunch",
-        "squat-calf-raise",
-        "shadow-boxing"
+        "lying-leg-lower",
+        "single-leg-balance",
+        "side-lying-leg-raise"
       ]
     }
   }
