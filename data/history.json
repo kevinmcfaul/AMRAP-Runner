@@ -20,6 +20,17 @@
         "single-leg-balance",
         "side-lying-leg-raise"
       ]
+    },
+    "2026-11-16": {
+      "title": "Even Clock",
+      "format": "emom",
+      "ids": [
+        "single-leg-glute-bridge",
+        "plank-up-down",
+        "bird-dog",
+        "good-morning",
+        "clamshell"
+      ]
     }
   }
 }

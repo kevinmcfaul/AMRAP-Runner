@@ -1,15 +1,15 @@
-# Easy Trail
+# Even Clock
 
-**2026-11-15**. 20 minute AMRAP, Easing back phase.
+**2026-11-16**. 20 minute EMOM, Easing back phase.
 
-Work through the list in order with no planned rest, then start again. Count rounds and reps until the clock hits zero.
+Every minute on the minute, do the next movement. Whatever time is left in the minute is your rest. 5 movements, 4 times through.
 
-1. **8 reps each side** Single-leg power bridge (single-leg). Drive the hips up fast from one heel, squeeze at the top, lower for two counts.
-2. **8 reps** Prone Y-T raise. Face down, lift the arms into a Y then a T. Thumbs up.
-3. **6 reps** Lying leg lower (core). Lower straight legs slowly, stop before the low back lifts.
-4. **20 sec each side** Single-leg balance (single-leg, stability). Stand tall on a soft knee, hips level, the other foot hovering. Fingertips near a wall.
-5. **10 reps each side** Side-lying leg raise (stability). Body in one line, lift the top leg slightly behind you with the toes pointing forward.
+1. **5 reps each side** Single-leg glute bridge (single-leg). Minutes 1, 6, 11, 16. Ribs down, push through the heel, hips level at the top.
+2. **12 reps** Plank up-down. Minutes 2, 7, 12, 17. Total reps. Forearms to hands and back, alternate the lead arm.
+3. **4 reps each side** Bird dog (core). Minutes 3, 8, 13, 18. Reach long, hips level, pause at full extension.
+4. **15 reps** Good morning. Minutes 4, 9, 14, 19. Hands behind the head, hinge with a flat back, feel the hamstrings.
+5. **6 reps each side** Clamshell (stability). Minutes 5, 10, 15, 20. Side-lying, knees bent, lift the top knee without rolling the pelvis back. Add a band above the knees to progress.
 
-One round takes about 3:37, so aim for roughly 5 rounds. That is 50 reps per round (holds not counted).
+57 reps in one pass through the list (holds not counted). Score yourself by the minutes you finished the full set.
 
 _Not medical advice. If anything pinches, skip it and ask your physio._
