@@ -31,6 +31,17 @@
         "good-morning",
         "clamshell"
       ]
+    },
+    "2026-11-17": {
+      "title": "Fast Pop",
+      "format": "power",
+      "ids": [
+        "drive-up-lunge",
+        "fast-push-up",
+        "side-plank-hip-dip",
+        "speed-squat",
+        "step-jack"
+      ]
     }
   }
 }
