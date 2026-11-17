@@ -20,6 +20,15 @@ From then on it runs by itself every day at 10:30 UTC (5:30 am EST, 6:30 am EDT 
 
 Pages is free for public repositories. Private repositories need a paid GitHub plan for Pages.
 
+## Log it in Strava or TrainingPeaks
+
+When the clock hits zero, a results card appears under the timer with two buttons:
+
+- **Copy results**: the format, your score, the time, and what you completed for each movement, for example `Air squat: 4 x 17 reps = 68 reps`. EMOM workouts also list any minutes you marked as missed.
+- **Copy short summary**: a one-line version that fits a title or a short description.
+
+You can also copy results mid-workout (tap **Copy results** under the clock while paused, for a session you cut short), and every saved score in the list at the bottom has its own **Copy** link. Paste the text into the description of a Strava activity or the comments on a TrainingPeaks workout. It's plain text, so there is nothing to connect or authorise.
+
 ## Don't like today's workout?
 
 - **Quick, on your own device:** open the site and tap **Shuffle**, or tap the arrow on any single movement to swap it. Swaps keep the single-leg and core rules intact. Nothing is saved to the repo.

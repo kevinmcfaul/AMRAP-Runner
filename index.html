@@ -154,8 +154,11 @@
   .section h2 { margin: 0 0 10px; font: 800 30px/1 var(--display); }
   .section p, .section li { max-width: 60ch; }
   .log { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-  .log li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
-  .log span:last-child { font-weight: 600; text-align: right; }
+  .log li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .log .res { font-weight: 600; text-align: right; margin-left: auto; }
+  .log .link { color: var(--lane); }
+  .finish-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .finish-note { margin: 12px 0 0; font-size: 14px; }
   .lib-search { width: 100%; min-height: 44px; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--card); margin-bottom: 10px; }
   .lib-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 0; }
   .lib-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
@@ -388,6 +391,7 @@
     var sc = score(), log = readLog();
     var entry = { date: localDate(), title: S.workout.title, format: fmtOf(S.workout), phase: S.cfg.phase, len: sc.len, reps: sc.reps };
     if (sc.timed) { entry.made = sc.made; entry.finished = sc.finished; } else { entry.rounds = sc.rounds; entry.extra = sc.extra; }
+    entry.text = resultsText(false);
     log.unshift(entry);
     writeLog(log); S.saved = true; flash('Score saved'); render();
   }
@@ -403,15 +407,54 @@
     else lines.push('About ' + mmss(w.roundSeconds) + ' per round, aim for ' + w.targetRounds + ' rounds.');
     return lines.join('\n');
   }
-  function copy() {
-    var text = workoutText();
-    function ok() { flash('Copied'); }
+  function copyText(text, okMsg) {
+    function ok() { flash(okMsg || 'Copied'); }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, function () { flash('Copy failed'); });
     else {
       var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
       try { document.execCommand('copy'); ok(); } catch (e) { flash('Copy failed'); }
       document.body.removeChild(t);
     }
+  }
+  function copy() { copyText(workoutText(), 'Workout copied'); }
+
+  // What you actually did, for pasting into Strava, TrainingPeaks or a notes app.
+  function completedMoves() {
+    var w = S.workout, len = w.moves.length, sc = score(), sets = [], i;
+    for (i = 0; i < len; i++) sets.push(0);
+    if (sc.timed) {
+      for (var m = 0; m < sc.finished; m++) if (S.missed.indexOf(m) < 0) sets[m % len]++;
+    } else {
+      for (i = 0; i < len; i++) sets[i] = sc.rounds + (i < sc.extra ? 1 : 0);
+    }
+    return w.moves.map(function (mv, k) {
+      var per = mv.qty * (mv.side ? 2 : 1);
+      var unit = mv.unit === 'sec' ? 'sec' : mv.unit === 'steps' ? 'steps' : 'reps';
+      return { name: mv.name, sets: sets[k], total: sets[k] * per, unit: unit,
+               line: mv.name + ': ' + sets[k] + ' x ' + GEN.qtyLabel(mv) + ' = ' + (sets[k] * per) + ' ' + unit };
+    }).filter(function (d) { return d.sets > 0; });
+  }
+  function resultsText(short) {
+    var w = S.workout, sc = score(), done = completedMoves();
+    var head = w.title + ': ' + w.minutes + ' min ' + GEN.FORMAT_LABEL[fmtOf(w)] + ', ' + PHASE_INFO[w.phase].label;
+    if (short) return head + '. ' + scoreText(sc) + '. ' + done.map(function (d) { return d.name; }).join(', ') + '.';
+    var lines = [head, localDate(), 'Result: ' + scoreText(sc)];
+    if (S.status !== 'done') lines.push('Time: ' + mmss(elapsedMs() / 1000) + ' of ' + GEN.MINUTES + ':00');
+    if (sc.timed) {
+      var missedMin = S.missed.filter(function (m) { return m < sc.finished; }).sort(function (a, b) { return a - b; }).map(function (m) { return m + 1; });
+      if (missedMin.length) lines.push('Missed minutes: ' + missedMin.join(', '));
+    }
+    lines.push('', 'Completed');
+    done.forEach(function (d) { lines.push(d.line); });
+    var gear = [];
+    w.moves.forEach(function (m) { if (m.uses && gear.indexOf(m.uses) < 0) gear.push(m.uses); });
+    if (gear.length) lines.push('', 'Equipment: ' + gear.join(', '));
+    if (done.some(function (d) { return d.unit === 'sec'; })) lines.push('', 'Total reps exclude timed holds (listed in seconds).');
+    return lines.join('\n');
+  }
+  function canCopyResults() {
+    var sc = score();
+    return S.status !== 'idle' && (sc.timed ? sc.finished > 0 : S.n > 0);
   }
   var toastTimer = 0;
   function flash(msg) {
@@ -450,7 +493,7 @@
       '<div><p class="group-label">Emphasis</p><div class="chips">' + focus + '</div><p class="hint">Every workout already has at least one single-leg movement and one core movement.</p></div>' +
       '<div class="row-actions"><button class="btn primary" data-act="shuffle"' + dis + '>Shuffle</button>' +
       (differs ? '<button class="btn" data-act="today"' + dis + '>Back to the published pick</button>' : '') +
-      '<button class="btn" data-act="copy">Copy workout</button></div>' +
+      '<button class="btn" data-act="copy">Copy workout plan</button></div>' +
       '</div></details>';
   }
 
@@ -484,6 +527,7 @@
       '<div class="score" aria-live="polite"><b>' + sc.reps + ' reps</b>' + sub + '</div></div>' +
       '<div class="bar"><i id="barfill" style="width:' + (100 - (S.remain / DURATION) * 100) + '%"></i></div>' +
       '<div class="clock-foot"><span id="status">' + statusText() + '</span><span>' +
+      (canCopyResults() ? '<button class="link" data-act="copyresults" data-v="full">Copy results</button> &nbsp; ' : '') +
       '<button class="link" data-act="mute">' + (S.muted ? 'Sound off' : 'Sound on') + '</button>' +
       (S.status !== 'idle' ? ' &nbsp; <button class="link" data-act="reset">Reset</button>' : '') + '</span></div></section>';
   }
@@ -508,7 +552,11 @@
     }
     if (S.status === 'idle') main = '<button class="btn main" data-act="start">Start ' + GEN.MINUTES + ':00</button>';
     else if (S.status === 'paused') main = '<button class="btn main" data-act="start">Resume</button>';
-    else if (S.status === 'done') main = '<button class="btn main" data-act="save"' + (S.saved ? ' disabled' : '') + '>' + (S.saved ? 'Score saved' : 'Save score') + '</button>';
+    else if (S.status === 'done') {
+      main = '<button class="btn main" data-act="save"' + (S.saved ? ' disabled' : '') + '>' + (S.saved ? 'Score saved' : 'Save score') + '</button>';
+      // Time can run out mid-movement, so let an AMRAP add the one you just finished.
+      if (!timed) side = '<button class="btn" data-act="add">Add movement</button>';
+    }
     return '<div class="dock"><div class="dock-inner">' + left + main + side + '</div></div>';
   }
 
@@ -517,17 +565,22 @@
     var sc = score();
     return '<section class="finish" aria-live="polite"><h2>Time</h2><p>' + esc(scoreText(sc)) +
       (sc.timed ? '. Save it to keep it with your other scores.' : '. Count the last movement you finished, then save it.') + '</p>' +
-      '<button class="btn" data-act="reset">Start over</button></section>';
+      '<div class="finish-actions">' +
+      '<button class="btn" data-act="copyresults" data-v="full">Copy results</button>' +
+      '<button class="btn" data-act="copyresults" data-v="short">Copy short summary</button>' +
+      '<button class="btn" data-act="reset">Start over</button></div>' +
+      '<p class="finish-note">Paste into the description of your Strava activity or the comments on your TrainingPeaks workout.</p></section>';
   }
 
   function renderLog() {
     var log = readLog();
-    var items = log.slice(0, 6).map(function (e) {
+    var items = log.slice(0, 6).map(function (e, idx) {
       var r = e.made !== undefined
         ? e.made + ' of ' + e.finished + ' minutes'
         : e.rounds + (e.rounds === 1 ? ' round' : ' rounds') + (e.extra ? ' + ' + e.extra + '/' + e.len : '');
       var kind = e.format && GEN.FORMAT_LABEL[e.format] ? ' (' + GEN.FORMAT_LABEL[e.format] + ')' : '';
-      return '<li><span>' + esc(e.date) + ', ' + esc(e.title) + kind + '</span><span>' + r + ', ' + e.reps + ' reps</span></li>';
+      return '<li><span>' + esc(e.date) + ', ' + esc(e.title) + kind + '</span><span class="res">' + r + ', ' + e.reps + ' reps</span>' +
+        (e.text ? '<button class="link" data-act="copylog" data-v="' + idx + '" aria-label="Copy results for ' + esc(e.title) + ' on ' + esc(e.date) + '">Copy</button>' : '') + '</li>';
     }).join('');
     return '<section class="section"><h2>Your scores</h2>' +
       (items ? '<ul class="log">' + items + '</ul><p class="small">Saved on this device only.</p>'
@@ -566,7 +619,7 @@
       '<header><p class="lede">Return-to-run strength</p><h1>' + esc(w.title) + '</h1>' +
       '<ul class="facts"><li>' + esc(prettyDate(S.source === 'published' ? publishedDate : localDate())) + '</li><li>' + GEN.MINUTES + ' minute ' + GEN.FORMAT_LABEL[fmtOf(w)] + '</li><li>' + PHASE_INFO[S.cfg.phase].label + '</li><li>' + badge + '</li>' + stale + '</ul>' +
       '<p class="summary">' + summaryHtml(w) + '</p></header>' +
-      renderClock() + renderMoves() + renderFinish() + renderControls() +
+      renderClock() + renderFinish() + renderMoves() + renderControls() +
       '<section class="section"><h2>Before you start</h2><p>Three minutes: march in place for one minute, ten leg swings each side, ten air squats, then five slow reverse lunges each side. Pick loads that leave two reps in reserve every round or minute.</p>' +
       '<p class="small">This is general exercise guidance, not medical advice. If anything pinches (Achilles, shin, knee, hip), swap it with the arrow button and mention it to your physio.</p></section>' +
       renderLog() + renderLibrary() +
@@ -594,11 +647,14 @@
     else if (act === 'shuffle') shuffle();
     else if (act === 'today') backToPublished();
     else if (act === 'copy') copy();
+    else if (act === 'copyresults') copyText(resultsText(v === 'short'), v === 'short' ? 'Summary copied' : 'Results copied');
+    else if (act === 'copylog') { var le = readLog()[Number(v)]; if (le && le.text) copyText(le.text, 'Results copied'); }
     else if (act === 'swap') { S.swaps++; S.workout = GEN.swap(S.workout, Number(v), ctx(), S.swaps); S.source = S.source === 'published' || S.source === 'local-today' ? 'shuffled' : S.source; render(); }
     else if (act === 'start') start();
     else if (act === 'pause') pause();
     else if (act === 'done') done();
     else if (act === 'undo') undo();
+    else if (act === 'add') { if (S.status === 'done') { S.n++; S.saved = false; render(); } }
     else if (act === 'miss') {
       var mi = minuteIndex(), k = S.missed.indexOf(mi);
       if (k >= 0) S.missed.splice(k, 1); else S.missed.push(mi);
