@@ -42,6 +42,17 @@
         "speed-squat",
         "step-jack"
       ]
+    },
+    "2026-11-18": {
+      "title": "Quiet Hill",
+      "format": "amrap",
+      "ids": [
+        "lateral-lunge",
+        "superman",
+        "bird-dog",
+        "quick-calf-raise",
+        "step-jack"
+      ]
     }
   }
 }
