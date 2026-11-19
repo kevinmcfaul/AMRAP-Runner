@@ -20,39 +20,6 @@
         "single-leg-balance",
         "side-lying-leg-raise"
       ]
-    },
-    "2026-11-16": {
-      "title": "Even Clock",
-      "format": "emom",
-      "ids": [
-        "single-leg-glute-bridge",
-        "plank-up-down",
-        "bird-dog",
-        "good-morning",
-        "clamshell"
-      ]
-    },
-    "2026-11-17": {
-      "title": "Fast Pop",
-      "format": "power",
-      "ids": [
-        "drive-up-lunge",
-        "fast-push-up",
-        "side-plank-hip-dip",
-        "speed-squat",
-        "step-jack"
-      ]
-    },
-    "2026-11-18": {
-      "title": "Quiet Hill",
-      "format": "amrap",
-      "ids": [
-        "lateral-lunge",
-        "superman",
-        "bird-dog",
-        "quick-calf-raise",
-        "step-jack"
-      ]
     }
   }
 }

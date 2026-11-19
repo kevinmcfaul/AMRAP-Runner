@@ -123,6 +123,106 @@ assert.deepStrictEqual(
 // every movement actually shows up in generated workouts
 exercises.forEach((e) => { if (!seen.has(e.id)) fail(`${e.id} never appeared in ${total} generated workouts`); });
 
+// ---- pain flags, plan modifiers
+{
+  const Plan = require('../lib/plan.js');
+  const A = Gen.AREAS;
+  let n = 0;
+  for (let m = 0; m < 1 << A.length; m += 3) {
+    const flags = A.filter((_, i) => (m >> i) & 1);
+    for (const phase of Gen.PHASES) for (const equipment of [[], Gen.EQUIPMENT]) for (const format of Gen.FORMAT_CHOICES) {
+      for (const plan of [undefined, Plan.OPTIONAL, { vol: 0.6, singlePref: 'always', allowPower: false }]) {
+        const cfg = Gen.normalizeConfig({ phase, equipment, format, flags });
+        let w;
+        try { w = Gen.generate({ exercises, cfg, recent: {}, plan }, 'f' + m + phase); } catch (e) { fail(`flags ${flags} ${phase} ${format}: ${e.message}`); continue; }
+        n++;
+        const probs = Gen.validate(w, cfg, exercises, plan);
+        if (probs.length) fail(`flags ${flags} ${phase} ${format}: ${probs.join(', ')}`);
+        if (plan && plan.noImpact && w.moves.some((x) => exercises.find((e) => e.id === x.id).imp > 0)) fail('impact movement on a no-impact day');
+        if (plan && plan.allowPower === false && w.format === 'power') fail('power on a no-power day');
+      }
+    }
+  }
+  const knee = Gen.normalizeConfig({ phase: 'ready', flags: ['knee'] });
+  for (let s = 0; s < 100; s++) {
+    Gen.generate({ exercises, cfg: knee, recent: {} }, 'k' + s).moves.forEach((x) => {
+      if (['lunge', 'stepdown', 'squat', 'jump', 'hop'].includes(x.pat)) fail('knee flag let through ' + x.id);
+    });
+  }
+  const base = Gen.normalizeConfig({ phase: 'building', format: 'amrap' });
+  const full = Gen.generate({ exercises, cfg: base, recent: {}, plan: undefined }, 'vol');
+  const half = Gen.generate({ exercises, cfg: base, recent: {}, plan: { vol: 0.6 } }, 'vol');
+  if (half.repsPerRound >= full.repsPerRound) fail('vol did not reduce reps');
+  if (Gen.cfgKey(Gen.normalizeConfig({ flags: ['knee'] })) === Gen.cfgKey(Gen.normalizeConfig({}))) fail('flags missing from cfgKey');
+  console.log(`${n} flag and plan-modifier workouts checked.`);
+
+  // ---- weekly layout and blocks
+  const sch = Plan.normalizeSchedule({ sessionsPerWeek: 3, longRunDay: 'Sat', hardRunDays: ['Tue'] });
+  const pl = Plan.normalizePlan({});
+  const ctx = { schedule: sch, plan: pl, planStart: '2026-11-16' };
+  const stages = [];
+  for (let w = 0; w < 10; w++) {
+    const mon = Plan.addDays('2026-11-16', w * 7);
+    const wk = Plan.planWeek(mon, ctx);
+    const sess = wk.days.filter((d) => d.kind === 'session');
+    const st = Plan.stageFor(pl, mon, '2026-11-16').id;
+    stages.push(st);
+    const want = st === 'deload' ? 2 : 3;
+    if (sess.length !== want) fail(`week ${w} (${st}) has ${sess.length} sessions`);
+    wk.days.forEach((d, i) => { if (d.kind === 'session' && (i === 5 || i === 1)) fail('session on a run day'); });
+    const idx = sess.map((d) => wk.days.indexOf(d));
+    idx.forEach((a) => idx.forEach((b) => { if (a !== b && (Math.abs(a - b) === 1 || Math.abs(a - b) === 6) && sess.length < 4) fail('back-to-back sessions'); }));
+    if (st === 'deload' && sess.some((d) => d.intensity !== 'light')) fail('deload session not light');
+    if (wk.days[4].kind === 'session' && wk.days[4].intensity !== 'light') fail('day before the long run is not light');
+    assert.deepStrictEqual(wk, Plan.planWeek(mon, ctx));
+  }
+  assert.deepStrictEqual(stages, ['base', 'base', 'base', 'base', 'deload', 'build', 'build', 'build', 'build', 'deload'], 'block order');
+  const race = Plan.normalizePlan({ raceDate: '2027-01-30' });
+  const rs = (d) => Plan.stageFor(race, d, '2026-11-16').id;
+  assert.strictEqual(rs('2026-11-30'), 'base');
+  assert.strictEqual(rs('2026-12-10'), 'maintain');
+  assert.strictEqual(rs('2027-01-25'), 'taper');
+  assert.strictEqual(rs('2027-01-30'), 'race');
+  assert.strictEqual(rs('2027-02-03'), 'recovery');
+  const rd = Plan.planDay('2026-11-17', ctx, {});
+  if (!rd.restDay) fail('hard run day should be a rest day for strength');
+  // readiness
+  assert.strictEqual(Plan.readiness([{ date: '2026-11-17', rpe: 9, soreness: 1 }], '2026-11-18').light, true);
+  assert.strictEqual(Plan.readiness([{ date: '2026-11-17', rpe: 8, soreness: 0 }], '2026-11-18').vol, 0.85);
+  assert.strictEqual(Plan.readiness([{ date: '2026-11-18', rpe: 10 }], '2026-11-18').vol, 1, 'same-day entries are ignored');
+  const easy = [1, 2, 3].map((i) => ({ date: Plan.addDays('2026-11-10', i), rpe: 4, soreness: 0 }));
+  assert.strictEqual(Plan.readiness(easy, '2026-11-15').suggestUp, true);
+  assert.deepStrictEqual(Plan.activeFlags([{ area: 'calf', until: '2026-11-01' }, 'knee', { area: 'hip', until: '2026-12-01' }], '2026-11-10'), ['knee', 'hip']);
+
+  // ---- generate.js end to end on a throwaway folder
+  const fs = require('fs'), os = require('os'), path = require('path'), cp = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'amrap-'));
+  fs.mkdirSync(path.join(dir, 'data'));
+  fs.copyFileSync(path.join(__dirname, '..', 'config.json'), path.join(dir, 'config.json'));
+  fs.writeFileSync(path.join(dir, 'data', 'athlete.json'), JSON.stringify({ weakerSide: 'left', flags: [{ area: 'knee', until: '2099-01-01' }], log: [] }));
+  const run = (date, env) => cp.execFileSync('node', [path.join(__dirname, 'generate.js')], { env: Object.assign({}, process.env, { AMRAP_ROOT: dir, AMRAP_DATE: date }, env), encoding: 'utf8' });
+  const today = () => JSON.parse(fs.readFileSync(path.join(dir, 'data', 'today.json'), 'utf8'));
+  run('2026-11-17');
+  if (today().workout !== null || !today().restDay) fail('hard run day did not produce a rest day');
+  run('2026-11-18');
+  const t1 = today();
+  if (!t1.workout || t1.workout.startSide !== 'left') fail('session day missing workout or start side');
+  if (t1.config.flags.join() !== 'knee') fail('athlete flags not applied');
+  const before = fs.readFileSync(path.join(dir, 'data', 'today.json'), 'utf8');
+  run('2026-11-18');
+  assert.strictEqual(today().workout.seed, t1.workout.seed, 'second run keeps the same workout');
+  fs.writeFileSync(path.join(dir, 'data', 'athlete.json'), JSON.stringify({ weakerSide: 'left', flags: [{ area: 'knee', until: '2099-01-01' }], log: [{ date: '2026-11-17', rpe: 9, soreness: 1 }] }));
+  run('2026-11-18');
+  assert.strictEqual(today().workout.seed, t1.workout.seed, 'logging effort must not replace the published workout');
+  run('2026-11-18', { REROLL: 'true' });
+  if (today().workout.seed === t1.workout.seed) fail('reroll did not change the workout');
+  run('2026-11-21', { REROLL: 'true' });
+  if (!today().optional || !today().workout) fail('reroll on a rest day should make an optional session');
+  if (today().workout.intensity !== 'light') fail('optional session should be light');
+  fs.rmSync(dir, { recursive: true, force: true });
+  console.log('Planner and generate.js integration checks done.');
+}
+
 const pct = (f) => ((stats[f].ok / stats[f].n) * 100).toFixed(1);
 console.log(`${total} workouts generated. In spec: AMRAP ${pct('amrap')}%, EMOM ${pct('emom')}%, Power EMOM ${pct('power')}%. Adjacent same-region neighbours: ${adjacentSame}.`);
 console.log(`Mix over 600 days: AMRAP ${counts.amrap}, EMOM ${counts.emom}, Power EMOM ${counts.power}. After an EMOM day: EMOM ${afterEmom.emom}.`);

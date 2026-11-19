@@ -5,5 +5,19 @@
   "equipment": [],
   "movements": 5,
   "doubleSingle": false,
-  "doubleCore": false
+  "doubleCore": false,
+  "schedule": {
+    "sessionsPerWeek": 3,
+    "longRunDay": "Sat",
+    "hardRunDays": [
+      "Tue"
+    ]
+  },
+  "plan": {
+    "startDate": null,
+    "baseWeeks": 4,
+    "buildWeeks": 4,
+    "raceDate": null
+  },
+  "flags": []
 }

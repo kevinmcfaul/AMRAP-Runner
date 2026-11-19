@@ -168,7 +168,29 @@
     position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--ink); color: var(--paper);
     padding: 8px 16px; border-radius: 99px; font-size: 14px; font-weight: 600; z-index: 6;
   }
+  /* ---------- plan: stage, week strip, rest day, check-in */
+  .stage { margin: 18px 0 0; padding: 12px 14px; border-left: 6px solid var(--lane); background: var(--card); border-radius: 0 10px 10px 0; max-width: 60ch; }
+  .stage b { display: block; font: 800 22px/1.1 var(--display); letter-spacing: .01em; }
+  .stage p { margin: 4px 0 0; font-size: 15px; color: var(--muted); }
+  .stage ul { margin: 8px 0 0; padding-left: 18px; font-size: 15px; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; }
+  .week li { border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 2px 7px; text-align: center; background: var(--card); min-width: 0; }
+  .week .d { display: block; font-weight: 700; font-size: 13px; }
+  .week .k { display: block; font-size: 11.5px; line-height: 1.2; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+  .week li.session { border-color: var(--lane); }
+  .week li.session .k { color: var(--lane); font-weight: 600; }
+  .week li.today { border-color: var(--ink); box-shadow: 3px 3px 0 var(--hivis); }
+  .rest-card { margin-top: 22px; border: 2px solid var(--ink); border-radius: 10px; padding: 16px; background: var(--card); }
+  .rest-card h2 { margin: 0 0 6px; font: 800 28px/1 var(--display); }
+  .rest-card p { margin: 0 0 10px; max-width: 56ch; }
+  .rest-card ul { margin: 0 0 14px; padding-left: 20px; }
+  .checkin { margin-top: 14px; padding-top: 12px; border-top: 2px solid rgba(12,26,43,.35); display: grid; gap: 10px; }
+  .checkin .group-label { margin-bottom: 6px; }
+  .finish .chip { border-color: #0c1a2b; color: #0c1a2b; min-height: 38px; padding: 5px 12px; }
+  .finish .chip[aria-pressed="true"] { background: #0c1a2b; color: #fff; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
   @media (max-width: 480px) {
+    .week .k { font-size: 10.5px; }
     .move { grid-template-columns: 84px 1fr auto; gap: 10px; }
     .bib .n { font-size: 44px; }
     .info h3 { font-size: 24px; }
@@ -181,11 +203,15 @@
 
 <script src="lib/exercises.js"></script>
 <script src="lib/generator.js"></script>
+<script src="lib/plan.js"></script>
 <script src="data/today.js"></script>
 <script>
 (function () {
   'use strict';
-  var GEN = window.AmrapGen, LIB = window.AMRAP_EXERCISES, TODAY = window.AMRAP_TODAY || null;
+  var GEN = window.AmrapGen, LIB = window.AMRAP_EXERCISES, TODAY = window.AMRAP_TODAY || null, PLAN_LIB = window.AmrapPlan;
+  var PLAN = TODAY && TODAY.plan ? TODAY.plan : null;      // absent in files published before planning existed
+  var ATH = TODAY && TODAY.athlete ? TODAY.athlete : {};
+  var REST = TODAY && TODAY.restDay ? TODAY.restDay : null;
   var DURATION = GEN.MINUTES * 60 * 1000;
 
   var PHASE_INFO = {
@@ -200,6 +226,14 @@
     emom:  { label: 'EMOM',        hint: 'Every minute on the minute you do one movement. Whatever is left of the minute is rest.' },
     power: { label: 'Power EMOM',  hint: 'One short, explosive set each minute with lots of rest. Move fast, reset between reps, stop when the speed drops.' }
   };
+  var SORE = ['None', 'Mild', 'Moderate', 'High'];
+  var KIND_LABEL = { session: 'Strength', rest: 'Rest', long: 'Long run', hard: 'Hard run', race: 'Race' };
+  var KIND_NAME = { rest: 'Rest day', long: 'Long run day', hard: 'Hard run day', race: 'Race day' };
+  var MOBILITY = [
+    'An easy 20 to 30 minute walk.',
+    'Two minutes each of calf and hip flexor stretches.',
+    'Ten slow breaths lying on your back with your calves up on a chair.'
+  ];
   var SLOT_FILTERS = [
     { id: 'all', label: 'All' }, { id: 'single', label: 'Single-leg' }, { id: 'core', label: 'Core' },
     { id: 'lower', label: 'Both legs' }, { id: 'stab', label: 'Stability' }, { id: 'upper', label: 'Upper body' },
@@ -215,12 +249,14 @@
     n: 0, status: 'idle', remain: DURATION, endAt: 0,
     missed: [], mi: 0,
     muted: false, saved: false, toast: '',
+    mods: PLAN ? PLAN.modifiers : null, checkin: blankCheckin(),
+    weaker: ATH.weakerSide || readSide(),
     libSlot: 'all', libQuery: ''
   };
   var publishedKey = GEN.cfgKey(S.cfg);
   var publishedWorkout = TODAY ? TODAY.workout : null;
   var publishedDate = TODAY ? TODAY.date : localDate();
-  if (!publishedWorkout) {
+  if (!publishedWorkout && !REST) {
     publishedWorkout = GEN.generate({ exercises: LIB, cfg: S.cfg, recent: {} }, publishedDate + '|local|' + publishedKey);
     S.source = 'local-today';
   }
@@ -237,7 +273,23 @@
     return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   }
   function locked() { return S.status !== 'idle'; }
-  function ctx() { return { exercises: LIB, cfg: S.cfg, recent: S.recent, lastFormat: S.workout ? fmtOf(S.workout) : undefined }; }
+  function blankCheckin() { return { rpe: null, soreness: null, flags: [] }; }
+  function readSide() { try { var v = localStorage.getItem('amrap-side-v1'); return v === 'left' || v === 'right' ? v : null; } catch (e) { return null; } }
+  // Check-ins that the daily Action has not seen yet shape any workout made on this device.
+  function localMods() {
+    var m = S.mods ? JSON.parse(JSON.stringify(S.mods)) : null;
+    if (!m || !PLAN_LIB) return m;
+    var seen = {}; (ATH.log || []).forEach(function (e) { seen[e.date] = 1; });
+    var fresh = readLog().filter(function (e) { return e.rpe != null && !seen[e.date] && e.date < localDate(); });
+    if (!fresh.length) return m;
+    var r = PLAN_LIB.readiness(fresh, localDate());
+    if (r.vol < 1) { m.vol = Math.round(m.vol * r.vol * 100) / 100; }
+    if (r.light) { m.noImpact = true; m.allowPower = false; m.intensity = 'light'; }
+    return m;
+  }
+  function ctx() { return { exercises: LIB, cfg: S.cfg, recent: S.recent, lastFormat: S.workout ? fmtOf(S.workout) : undefined, plan: localMods() || undefined, weakerSide: S.weaker || undefined }; }
+  function startSide() { return S.weaker || (S.workout && S.workout.startSide) || null; }
+  function hasSides() { return S.workout && S.workout.moves.some(function (m) { return m.side; }); }
 
   // Files published before formats existed have no `format`; they are AMRAPs.
   function fmtOf(w) { return w.format || 'amrap'; }
@@ -303,8 +355,8 @@
   function applyConfig(next) {
     if (locked()) return;
     S.cfg = GEN.normalizeConfig(next);
-    S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION;
-    if (GEN.cfgKey(S.cfg) === publishedKey) {
+    S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION; S.checkin = blankCheckin();
+    if (GEN.cfgKey(S.cfg) === publishedKey && publishedWorkout) {
       S.workout = publishedWorkout; S.source = TODAY ? 'published' : 'local-today';
     } else {
       shuffle(true);
@@ -317,7 +369,7 @@
     if (locked()) return;
     var seed = 'shuffle|' + Math.random().toString(36).slice(2);
     S.workout = GEN.generate(ctx(), seed);
-    S.source = 'shuffled'; S.swaps = 0; S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION;
+    S.source = 'shuffled'; S.swaps = 0; S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION; S.checkin = blankCheckin();
     if (!silent) flash('New workout');
     render();
   }
@@ -325,7 +377,7 @@
     if (locked()) return;
     S.cfg = TODAY ? GEN.normalizeConfig(TODAY.config) : fallbackCfg;
     S.workout = publishedWorkout; S.source = TODAY ? 'published' : 'local-today';
-    S.swaps = 0; S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION;
+    S.swaps = 0; S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION; S.checkin = blankCheckin();
     render();
   }
 
@@ -382,7 +434,7 @@
   }
   function reset() {
     clearInterval(timerId); keepAwake(false);
-    S.status = 'idle'; S.remain = DURATION; S.n = 0; S.missed = []; S.saved = false; render();
+    S.status = 'idle'; S.remain = DURATION; S.n = 0; S.missed = []; S.saved = false; S.checkin = blankCheckin(); render();
   }
   function done() { if (S.status === 'running') { S.n++; render(); } }
   function undo() { if (S.n > 0 && S.status !== 'idle') { S.n--; S.saved = false; render(); } }
@@ -391,6 +443,9 @@
     var sc = score(), log = readLog();
     var entry = { date: localDate(), title: S.workout.title, format: fmtOf(S.workout), phase: S.cfg.phase, len: sc.len, reps: sc.reps };
     if (sc.timed) { entry.made = sc.made; entry.finished = sc.finished; } else { entry.rounds = sc.rounds; entry.extra = sc.extra; }
+    if (S.checkin.rpe != null) entry.rpe = S.checkin.rpe;
+    if (S.checkin.soreness != null) entry.soreness = S.checkin.soreness;
+    if (S.checkin.flags.length) entry.flags = S.checkin.flags.slice();
     entry.text = resultsText(false);
     log.unshift(entry);
     writeLog(log); S.saved = true; flash('Score saved'); render();
@@ -403,6 +458,7 @@
     w.moves.forEach(function (m, i) {
       lines.push((i + 1) + '. ' + GEN.qtyLabel(m) + ' ' + m.name + (m.uses ? ' (' + m.uses + ')' : '') + (timed ? ' [minutes ' + minutesFor(i, len).join(', ') + ']' : ''));
     });
+    if (startSide() && hasSides()) lines.push('Start one-sided movements on the ' + startSide() + ' side.');
     if (timed) lines.push('Every minute on the minute, ' + (w.cycles || GEN.MINUTES / len) + ' times through.');
     else lines.push('About ' + mmss(w.roundSeconds) + ' per round, aim for ' + w.targetRounds + ' rounds.');
     return lines.join('\n');
@@ -417,6 +473,40 @@
     }
   }
   function copy() { copyText(workoutText(), 'Workout copied'); }
+
+  // Check-in answers also update a score that was already saved.
+  function syncCheckin() {
+    if (S.saved) {
+      var log = readLog(), e = log[0];
+      if (e) {
+        delete e.rpe; delete e.soreness; delete e.flags;
+        if (S.checkin.rpe != null) e.rpe = S.checkin.rpe;
+        if (S.checkin.soreness != null) e.soreness = S.checkin.soreness;
+        if (S.checkin.flags.length) e.flags = S.checkin.flags.slice();
+        e.text = resultsText(false); writeLog(log);
+      }
+    }
+    render();
+  }
+
+  // Everything the daily Action needs to know about you, as the contents of data/athlete.json.
+  function profileJson() {
+    var today = localDate(), byDate = {};
+    (ATH.log || []).forEach(function (e) { byDate[e.date] = { date: e.date, rpe: e.rpe, soreness: e.soreness }; });
+    readLog().slice().reverse().forEach(function (e) {
+      if (e.rpe != null || e.soreness != null) byDate[e.date] = { date: e.date, rpe: e.rpe != null ? e.rpe : null, soreness: e.soreness != null ? e.soreness : 0 };
+    });
+    var log = Object.keys(byDate).sort().slice(-30).map(function (d) { return byDate[d]; });
+    var areas = S.cfg.flags.slice();
+    S.checkin.flags.forEach(function (a) { if (areas.indexOf(a) < 0) areas.push(a); });
+    var until = PLAN_LIB ? PLAN_LIB.addDays(today, 14) : today;
+    return JSON.stringify({
+      planStart: ATH.planStart || (PLAN_LIB ? PLAN_LIB.mondayOf(today) : null),
+      weakerSide: S.weaker || null,
+      flags: areas.map(function (a) { return { area: a, until: until }; }),
+      log: log
+    }, null, 2) + '\n';
+  }
 
   // What you actually did, for pasting into Strava, TrainingPeaks or a notes app.
   function completedMoves() {
@@ -439,6 +529,10 @@
     var head = w.title + ': ' + w.minutes + ' min ' + GEN.FORMAT_LABEL[fmtOf(w)] + ', ' + PHASE_INFO[w.phase].label;
     if (short) return head + '. ' + scoreText(sc) + '. ' + done.map(function (d) { return d.name; }).join(', ') + '.';
     var lines = [head, localDate(), 'Result: ' + scoreText(sc)];
+    var ck = S.checkin;
+    if (ck.rpe != null) lines.push('Effort: ' + ck.rpe + ' out of 10' + (ck.soreness != null ? ', soreness ' + SORE[ck.soreness].toLowerCase() : ''));
+    if (ck.flags.length) lines.push('Felt tight or sore: ' + ck.flags.join(', '));
+    if (startSide() && hasSides()) lines.push('Started each one-sided movement on the ' + startSide() + ' side');
     if (S.status !== 'done') lines.push('Time: ' + mmss(elapsedMs() / 1000) + ' of ' + GEN.MINUTES + ':00');
     if (sc.timed) {
       var missedMin = S.missed.filter(function (m) { return m < sc.finished; }).sort(function (a, b) { return a - b; }).map(function (m) { return m + 1; });
@@ -482,6 +576,12 @@
     }).join('');
     var focus = '<button class="chip" data-act="tog" data-v="doubleSingle" aria-pressed="' + S.cfg.doubleSingle + '"' + dis + '>Two single-leg movements</button>' +
                 '<button class="chip" data-act="tog" data-v="doubleCore" aria-pressed="' + S.cfg.doubleCore + '"' + dis + '>Two core movements</button>';
+    var flagChips = GEN.AREAS.map(function (a) {
+      return '<button class="chip" data-act="flag" data-v="' + a + '" aria-pressed="' + (S.cfg.flags.indexOf(a) >= 0) + '"' + dis + '>' + GEN.AREA_LABEL[a] + '</button>';
+    }).join('');
+    var sideChips = [['', 'No preference'], ['left', 'Left'], ['right', 'Right']].map(function (x) {
+      return '<button class="chip" data-act="side" data-v="' + x[0] + '" aria-pressed="' + ((S.weaker || '') === x[0]) + '">' + x[1] + '</button>';
+    }).join('');
     var differs = GEN.cfgKey(S.cfg) !== publishedKey || S.source === 'shuffled';
     return '<details class="panel" id="filters"' + (S.filtersOpen === false ? '' : ' open') + '>' +
       '<summary>Adjust this workout</summary><div class="panel-body">' +
@@ -491,6 +591,8 @@
       '<div><p class="group-label">What you have</p><div class="chips"><span class="chip fixed">Bodyweight</span>' + eq + '</div></div>' +
       '<div><p class="group-label">How much</p><div class="seg">' + counts + '</div></div>' +
       '<div><p class="group-label">Emphasis</p><div class="chips">' + focus + '</div><p class="hint">Every workout already has at least one single-leg movement and one core movement.</p></div>' +
+      '<div><p class="group-label">Anything flaring up?</p><div class="chips">' + flagChips + '</div><p class="hint">Removes the movements that load that area, and all jumping for any leg area. If it lasts more than a few days, see your physio.</p></div>' +
+      '<div><p class="group-label">Weaker side</p><div class="seg">' + sideChips + '</div><p class="hint">One-sided movements start on this side. To keep it for the daily pick, use Copy profile update at the bottom.</p></div>' +
       '<div class="row-actions"><button class="btn primary" data-act="shuffle"' + dis + '>Shuffle</button>' +
       (differs ? '<button class="btn" data-act="today"' + dis + '>Back to the published pick</button>' : '') +
       '<button class="btn" data-act="copy">Copy workout plan</button></div>' +
@@ -508,6 +610,7 @@
       if (m.slot === 'core') tags += '<span class="tag core">Core</span>';
       if (m.slot === 'stab') tags += '<span class="tag core">Stability</span>';
       if (m.uses) tags += '<span class="tag">' + esc(EQ_LABEL[m.uses] || m.uses) + '</span>';
+      if (m.side && startSide()) tags += '<span class="tag">Start ' + startSide() + '</span>';
       if (timed) tags += '<span class="tag">Minutes ' + minutesFor(i, len).join(', ') + '</span>';
       return '<li class="' + cls + '"' + (i === cur ? ' aria-current="step"' : '') + '>' +
         '<div class="bib"><span class="n">' + q.n + '</span><span class="u">' + q.u + '</span></div>' +
@@ -560,6 +663,53 @@
     return '<div class="dock"><div class="dock-inner">' + left + main + side + '</div></div>';
   }
 
+  function renderPlan(showStage) {
+    if (!PLAN) return '';
+    var st = PLAN.stage, notes = (PLAN.notes || []).slice();
+    var html = '';
+    if (showStage && st) {
+      html += '<div class="stage"><b>' + esc(st.title) + '</b><p>' + esc(st.blurb) + '</p>' +
+        (notes.length ? '<ul>' + notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' : '') + '</div>';
+    }
+    if (PLAN.week) {
+      html += '<ol class="week" aria-label="This week">' + PLAN.week.map(function (d) {
+        var label = d.kind === 'session' ? (d.intensity === 'light' ? 'Light strength' : 'Strength') : KIND_LABEL[d.kind] || d.kind;
+        return '<li class="' + d.kind + (d.date === publishedDate ? ' today' : '') + '"' + (d.date === publishedDate ? ' aria-current="date"' : '') + '><span class="d">' + d.day + '</span><span class="k">' + label + '</span></li>';
+      }).join('') + '</ol>';
+    }
+    return html;
+  }
+
+  function renderRest() {
+    var ns = REST && REST.nextSession;
+    var next = ns ? '<p>Next strength session: <strong>' + ns.day + '</strong>' + (ns.intensity === 'light' ? ' (a light one)' : '') + '.</p>' : '';
+    return '<header><p class="lede">Return-to-run strength</p><h1>' + esc(KIND_NAME[REST && REST.kind] || 'Rest day') + '</h1>' +
+      '<ul class="facts"><li>' + esc(prettyDate(publishedDate)) + '</li><li><span class="badge">No workout today</span></li></ul>' +
+      '<p class="summary">' + esc(REST ? REST.reason : '') + '</p></header>' +
+      renderPlan(true) +
+      '<section class="rest-card"><h2>If you want to move</h2><ul>' + MOBILITY.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ul>' + next +
+      '<div class="row-actions"><button class="btn primary" data-act="lightanyway">Do a light session anyway</button></div>' +
+      '<p class="hint">Short, no jumping, trimmed reps. Resting is part of the plan, so skipping it is fine.</p></section>';
+  }
+
+  function renderCheckin() {
+    var ck = S.checkin;
+    var rpe = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (n) { return '<button class="chip" data-act="rpe" data-v="' + n + '" aria-pressed="' + (ck.rpe === n) + '">' + n + '</button>'; }).join('');
+    var sore = SORE.map(function (l, i) { return '<button class="chip" data-act="sore" data-v="' + i + '" aria-pressed="' + (ck.soreness === i) + '">' + l + '</button>'; }).join('');
+    var areas = GEN.AREAS.map(function (a) { return '<button class="chip" data-act="hurt" data-v="' + a + '" aria-pressed="' + (ck.flags.indexOf(a) >= 0) + '">' + GEN.AREA_LABEL[a] + '</button>'; }).join('');
+    return '<div class="checkin"><div><p class="group-label">How hard did it feel? (1 easy, 10 all out)</p><div class="pill-row">' + rpe + '</div></div>' +
+      '<div><p class="group-label">How sore are you?</p><div class="pill-row">' + sore + '</div></div>' +
+      '<div><p class="group-label">Anything hurt or feel tight?</p><div class="pill-row">' + areas + '</div></div>' +
+      '<div class="finish-actions"><button class="btn" data-act="copyprofile">Copy profile update</button></div>' +
+      '<p class="finish-note">Your answers adjust the next workouts you shuffle on this device. Copy the profile update into <code>data/athlete.json</code> in your repo so the daily pick uses them too.</p></div>';
+  }
+
+  function renderProfile() {
+    return '<section class="section"><h2>Your profile</h2><p class="small">Pain flags, weaker side and effort ratings live on this device. The daily GitHub Action only knows them once you copy them into the repo.</p>' +
+      '<div class="row-actions"><button class="btn" data-act="copyprofile">Copy profile update</button></div>' +
+      '<p class="small">Paste it over the contents of <code>data/athlete.json</code> and commit. Flags expire after 14 days unless you renew them.</p></section>';
+  }
+
   function renderFinish() {
     if (S.status !== 'done') return '';
     var sc = score();
@@ -569,7 +719,8 @@
       '<button class="btn" data-act="copyresults" data-v="full">Copy results</button>' +
       '<button class="btn" data-act="copyresults" data-v="short">Copy short summary</button>' +
       '<button class="btn" data-act="reset">Start over</button></div>' +
-      '<p class="finish-note">Paste into the description of your Strava activity or the comments on your TrainingPeaks workout.</p></section>';
+      '<p class="finish-note">Paste into the description of your Strava activity or the comments on your TrainingPeaks workout.</p>' +
+      renderCheckin() + '</section>';
   }
 
   function renderLog() {
@@ -611,6 +762,13 @@
   function render() {
     var active = document.activeElement && document.activeElement.id;
     var w = S.workout;
+    if (!w) {
+      var rapp = document.getElementById('app');
+      rapp.innerHTML = renderRest() + renderProfile() + renderLog() +
+        '<section class="section"><p class="small">This is general exercise guidance, not medical advice.</p></section>';
+      if (S.toast) flash(S.toast);
+      return;
+    }
     var badge = S.source === 'published' ? '<span class="badge">Published pick</span>'
       : S.source === 'shuffled' ? '<span class="badge local">Shuffled on this device</span>'
       : '<span class="badge local">Made in your browser</span>';
@@ -618,11 +776,11 @@
     var html =
       '<header><p class="lede">Return-to-run strength</p><h1>' + esc(w.title) + '</h1>' +
       '<ul class="facts"><li>' + esc(prettyDate(S.source === 'published' ? publishedDate : localDate())) + '</li><li>' + GEN.MINUTES + ' minute ' + GEN.FORMAT_LABEL[fmtOf(w)] + '</li><li>' + PHASE_INFO[S.cfg.phase].label + '</li><li>' + badge + '</li>' + stale + '</ul>' +
-      '<p class="summary">' + summaryHtml(w) + '</p></header>' +
+      '<p class="summary">' + summaryHtml(w) + '</p>' + (startSide() && hasSides() ? '<p class="small">Start each one-sided movement on your ' + startSide() + ' side.</p>' : '') + renderPlan(true) + '</header>' +
       renderClock() + renderFinish() + renderMoves() + renderControls() +
       '<section class="section"><h2>Before you start</h2><p>Three minutes: march in place for one minute, ten leg swings each side, ten air squats, then five slow reverse lunges each side. Pick loads that leave two reps in reserve every round or minute.</p>' +
       '<p class="small">This is general exercise guidance, not medical advice. If anything pinches (Achilles, shin, knee, hip), swap it with the arrow button and mention it to your physio.</p></section>' +
-      renderLog() + renderLibrary() +
+      renderProfile() + renderLog() + renderLibrary() +
       '<section class="section"><h2>How the daily pick works</h2><p class="small">A GitHub Action publishes a new workout each morning, with the format (AMRAP, EMOM or Power EMOM) picked for you unless you set one. If you don\'t like it, Shuffle gives you a one-off here. To replace the published pick, run the Action by hand from the repository\'s Actions tab.</p></section>' +
       renderDock();
     var app = document.getElementById('app');
@@ -644,6 +802,17 @@
     else if (act === 'eq') { var i = c.equipment.indexOf(v); if (i >= 0) c.equipment.splice(i, 1); else c.equipment.push(v); applyConfig(c); }
     else if (act === 'count') { c.movements = Number(v); applyConfig(c); }
     else if (act === 'tog') { c[v] = !c[v]; applyConfig(c); }
+    else if (act === 'flag') { var fi = c.flags.indexOf(v); if (fi >= 0) c.flags.splice(fi, 1); else c.flags.push(v); applyConfig(c); }
+    else if (act === 'side') { S.weaker = v || null; try { localStorage.setItem('amrap-side-v1', v); } catch (e) {} render(); }
+    else if (act === 'copyprofile') copyText(profileJson(), 'Profile copied');
+    else if (act === 'rpe') { S.checkin.rpe = S.checkin.rpe === Number(v) ? null : Number(v); syncCheckin(); }
+    else if (act === 'sore') { S.checkin.soreness = S.checkin.soreness === Number(v) ? null : Number(v); syncCheckin(); }
+    else if (act === 'hurt') { var hi = S.checkin.flags.indexOf(v); if (hi >= 0) S.checkin.flags.splice(hi, 1); else S.checkin.flags.push(v); syncCheckin(); }
+    else if (act === 'lightanyway') {
+      S.mods = PLAN_LIB ? Object.assign({}, PLAN_LIB.OPTIONAL) : null;
+      S.workout = GEN.generate(ctx(), 'optional|' + publishedDate + '|' + Math.random().toString(36).slice(2));
+      S.source = 'shuffled'; S.swaps = 0; S.n = 0; S.missed = []; S.saved = false; S.remain = DURATION; S.checkin = blankCheckin(); render();
+    }
     else if (act === 'shuffle') shuffle();
     else if (act === 'today') backToPublished();
     else if (act === 'copy') copy();
