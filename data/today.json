@@ -1,7 +1,7 @@
 {
-  "date": "2026-11-21",
+  "date": "2026-11-22",
   "timezone": "America/Toronto",
-  "generatedAt": "2026-11-21T17:44:04.114Z",
+  "generatedAt": "2026-11-22T17:58:44.357Z",
   "trigger": "schedule",
   "config": {
     "phase": "easing",
@@ -28,15 +28,15 @@
     "notes": [],
     "suggestUp": false,
     "modifiers": {
-      "intensity": "light",
-      "vol": 0.7,
-      "noImpact": true,
+      "intensity": "full",
+      "vol": 1,
+      "noImpact": false,
       "allowPower": false,
       "loadedScale": 1,
       "loadedBoost": 1,
-      "stabBoost": 1,
-      "singlePref": null,
-      "maxMovements": 4,
+      "stabBoost": 1.5,
+      "singlePref": "half",
+      "maxMovements": null,
       "stageId": "base"
     },
     "week": [
@@ -90,7 +90,7 @@
         "stage": "base"
       }
     ],
-    "kind": "long"
+    "kind": "session"
   },
   "athlete": {
     "planStart": "2026-11-16",
@@ -99,16 +99,113 @@
     "log": []
   },
   "salt": "",
-  "recent": {},
-  "lastFormat": null,
-  "workout": null,
-  "restDay": {
-    "kind": "long",
-    "reason": "Long run day. Strength waits so your legs are fresh for it.",
-    "nextSession": {
-      "date": "2026-11-22",
-      "day": "Sun",
-      "intensity": "full"
-    }
+  "recent": {
+    "single-leg-calf-raise": 1,
+    "push-up": 1,
+    "side-plank": 1,
+    "glute-bridge": 1,
+    "high-knee-march": 1,
+    "single-leg-power-bridge": 1,
+    "prone-ytw": 1,
+    "lying-leg-lower": 1,
+    "single-leg-balance": 1,
+    "side-lying-leg-raise": 1,
+    "single-leg-rdl": 1,
+    "fast-push-up": 1,
+    "split-squat": 1,
+    "russian-twist": 1,
+    "psoas-march": 1
+  },
+  "lastFormat": "emom",
+  "workout": {
+    "seed": "2026-11-22||easing|bodyweight|5|0|0|mix|none",
+    "title": "Calm Rhythm",
+    "format": "emom",
+    "minutes": 20,
+    "phase": "easing",
+    "intensity": "full",
+    "stage": "base",
+    "startSide": null,
+    "moves": [
+      {
+        "id": "lateral-lunge",
+        "name": "Lateral lunge",
+        "slot": "single",
+        "group": "single",
+        "pat": "lateral",
+        "sl": true,
+        "qty": 4,
+        "unit": "reps",
+        "side": true,
+        "uses": null,
+        "cue": "Sit back into the working hip, other leg straight, chest up.",
+        "sec": 32,
+        "reps": 8
+      },
+      {
+        "id": "prone-ytw",
+        "name": "Prone Y-T raise",
+        "slot": "pull",
+        "group": "upper",
+        "pat": "pull",
+        "sl": false,
+        "qty": 12,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Face down, lift the arms into a Y then a T. Thumbs up.",
+        "sec": 36,
+        "reps": 12
+      },
+      {
+        "id": "speed-split-squat",
+        "name": "Speed split squat",
+        "slot": "single",
+        "group": "single",
+        "pat": "lunge",
+        "sl": true,
+        "qty": 6,
+        "unit": "reps",
+        "side": true,
+        "uses": null,
+        "cue": "Lower for two counts, then drive up as fast as you can without leaving the floor.",
+        "sec": 38,
+        "reps": 12
+      },
+      {
+        "id": "bicycle-crunch",
+        "name": "Bicycle crunch",
+        "slot": "core",
+        "group": "core",
+        "pat": "rot",
+        "sl": false,
+        "qty": 24,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Total reps. Slow and controlled, elbow toward the opposite knee.",
+        "sec": 36,
+        "reps": 24
+      },
+      {
+        "id": "high-knee-march",
+        "name": "High-knee march",
+        "slot": "cond",
+        "group": "fifth",
+        "pat": "cardio",
+        "sl": false,
+        "qty": 45,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Total steps. Drive the knee up, swing the opposite arm.",
+        "sec": 36,
+        "reps": 45
+      }
+    ],
+    "roundSeconds": 300,
+    "repsPerRound": 101,
+    "cycles": 4,
+    "targetRounds": null
   }
 }

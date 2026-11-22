@@ -31,6 +31,17 @@
         "russian-twist",
         "psoas-march"
       ]
+    },
+    "2026-11-22": {
+      "title": "Calm Rhythm",
+      "format": "emom",
+      "ids": [
+        "lateral-lunge",
+        "prone-ytw",
+        "speed-split-squat",
+        "bicycle-crunch",
+        "high-knee-march"
+      ]
     }
   }
 }
