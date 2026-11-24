@@ -1,7 +1,7 @@
 {
-  "date": "2026-11-23",
+  "date": "2026-11-24",
   "timezone": "America/Toronto",
-  "generatedAt": "2026-11-23T22:10:50.520Z",
+  "generatedAt": "2026-11-24T20:45:46.884Z",
   "trigger": "schedule",
   "config": {
     "phase": "easing",
@@ -90,7 +90,7 @@
         "stage": "base"
       }
     ],
-    "kind": "rest"
+    "kind": "hard"
   },
   "athlete": {
     "planStart": "2026-11-16",
@@ -103,8 +103,8 @@
   "lastFormat": null,
   "workout": null,
   "restDay": {
-    "kind": "rest",
-    "reason": "Rest day. The training sinks in on days like this. An easy walk or a few minutes of mobility is plenty.",
+    "kind": "hard",
+    "reason": "Hard run day. Strength waits so you can run it well.",
     "nextSession": {
       "date": "2026-11-25",
       "day": "Wed",
