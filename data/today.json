@@ -1,7 +1,7 @@
 {
-  "date": "2026-11-24",
+  "date": "2026-11-25",
   "timezone": "America/Toronto",
-  "generatedAt": "2026-11-24T20:45:46.884Z",
+  "generatedAt": "2026-11-25T20:03:31.631Z",
   "trigger": "schedule",
   "config": {
     "phase": "easing",
@@ -28,15 +28,15 @@
     "notes": [],
     "suggestUp": false,
     "modifiers": {
-      "intensity": "light",
-      "vol": 0.7,
-      "noImpact": true,
+      "intensity": "full",
+      "vol": 1,
+      "noImpact": false,
       "allowPower": false,
       "loadedScale": 1,
       "loadedBoost": 1,
-      "stabBoost": 1,
-      "singlePref": null,
-      "maxMovements": 4,
+      "stabBoost": 1.5,
+      "singlePref": "half",
+      "maxMovements": null,
       "stageId": "base"
     },
     "week": [
@@ -90,7 +90,7 @@
         "stage": "base"
       }
     ],
-    "kind": "hard"
+    "kind": "session"
   },
   "athlete": {
     "planStart": "2026-11-16",
@@ -99,16 +99,116 @@
     "log": []
   },
   "salt": "",
-  "recent": {},
-  "lastFormat": null,
-  "workout": null,
-  "restDay": {
-    "kind": "hard",
-    "reason": "Hard run day. Strength waits so you can run it well.",
-    "nextSession": {
-      "date": "2026-11-25",
-      "day": "Wed",
-      "intensity": "full"
-    }
+  "recent": {
+    "single-leg-calf-raise": 1,
+    "push-up": 1,
+    "side-plank": 1,
+    "glute-bridge": 1,
+    "high-knee-march": 2,
+    "single-leg-power-bridge": 1,
+    "prone-ytw": 2,
+    "lying-leg-lower": 1,
+    "single-leg-balance": 1,
+    "side-lying-leg-raise": 1,
+    "single-leg-rdl": 1,
+    "fast-push-up": 1,
+    "split-squat": 1,
+    "russian-twist": 1,
+    "psoas-march": 1,
+    "lateral-lunge": 1,
+    "speed-split-squat": 1,
+    "bicycle-crunch": 1
+  },
+  "lastFormat": "emom",
+  "workout": {
+    "seed": "2026-11-25||easing|bodyweight|5|0|0|mix|none",
+    "title": "Steady Rhythm",
+    "format": "emom",
+    "minutes": 20,
+    "phase": "easing",
+    "intensity": "full",
+    "stage": "base",
+    "startSide": null,
+    "moves": [
+      {
+        "id": "curtsy-lunge",
+        "name": "Curtsy lunge",
+        "slot": "single",
+        "group": "single",
+        "pat": "lateral",
+        "sl": true,
+        "qty": 4,
+        "unit": "reps",
+        "side": true,
+        "uses": null,
+        "cue": "Step behind and across, keep the front knee stacked over the ankle.",
+        "sec": 32,
+        "reps": 8
+      },
+      {
+        "id": "plank-up-down",
+        "name": "Plank up-down",
+        "slot": "push",
+        "group": "upper",
+        "pat": "pushdyn",
+        "sl": false,
+        "qty": 12,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Total reps. Forearms to hands and back, alternate the lead arm.",
+        "sec": 30,
+        "reps": 12
+      },
+      {
+        "id": "slow-mountain-climber",
+        "name": "Slow mountain climber",
+        "slot": "core",
+        "group": "core",
+        "pat": "antiext",
+        "sl": false,
+        "qty": 15,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Total reps. Pause with each knee drawn in, hips level, no bouncing.",
+        "sec": 30,
+        "reps": 15
+      },
+      {
+        "id": "squat-calf-raise",
+        "name": "Squat to calf raise",
+        "slot": "lower",
+        "group": "lower",
+        "pat": "squat",
+        "sl": false,
+        "qty": 12,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Stand up, then rise onto the toes before the next squat.",
+        "sec": 36,
+        "reps": 12
+      },
+      {
+        "id": "shadow-boxing",
+        "name": "Shadow boxing",
+        "slot": "cond",
+        "group": "fifth",
+        "pat": "cardio",
+        "sl": false,
+        "qty": 45,
+        "unit": "reps",
+        "side": false,
+        "uses": null,
+        "cue": "Total punches. Light on the feet, rotate through the hips.",
+        "sec": 31,
+        "reps": 45
+      }
+    ],
+    "roundSeconds": 300,
+    "repsPerRound": 92,
+    "cycles": 4,
+    "targetRounds": null
   }
 }

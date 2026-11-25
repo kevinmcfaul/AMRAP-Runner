@@ -42,6 +42,17 @@
         "bicycle-crunch",
         "high-knee-march"
       ]
+    },
+    "2026-11-25": {
+      "title": "Steady Rhythm",
+      "format": "emom",
+      "ids": [
+        "curtsy-lunge",
+        "plank-up-down",
+        "slow-mountain-climber",
+        "squat-calf-raise",
+        "shadow-boxing"
+      ]
     }
   }
 }
