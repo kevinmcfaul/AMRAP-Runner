@@ -53,6 +53,17 @@
         "squat-calf-raise",
         "shadow-boxing"
       ]
+    },
+    "2026-11-27": {
+      "title": "Tempo Base",
+      "format": "amrap",
+      "ids": [
+        "lateral-lunge",
+        "prone-ytw",
+        "reverse-crunch",
+        "wall-sit",
+        "step-jack"
+      ]
     }
   }
 }
